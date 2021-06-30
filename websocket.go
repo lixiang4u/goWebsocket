@@ -33,9 +33,9 @@ type eventHandler func(clientId string, ws *websocket.Conn, messageType int, dat
 
 // ws数据交互格式，基于json，event字段必选
 type protocol struct {
-	ClientId string
-	Event    string
-	Data     interface{}
+	ClientId string      `json:"client_id"`
+	Event    string      `json:"event"`
+	Data     interface{} `json:"data"`
 }
 
 // ws的全局配置
