@@ -38,7 +38,7 @@ type protocol struct {
 ws.Run(w http.ResponseWriter, r *http.Request, responseHeader http.Header)
 ```
 
-### 截图
+### 广播聊天截图
 
 
 ![markdown](https://raw.githubusercontent.com/lixiang4u/go-websocket/master/_examples/screenshot.png "markdown")
