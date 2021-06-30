@@ -1,5 +1,11 @@
 # 使用方式
 
+### 说明
+- 基于`github.com/gorilla/websocket`包
+- 增加了`client_id`，区分客户端
+- 可以发送消息到指定`client_id`
+
+
 ### 导入包
 ```go
 go get github.com/lixiang4u/go-websocket
