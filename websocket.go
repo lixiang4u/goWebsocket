@@ -29,7 +29,7 @@ var upgrader = websocket.Upgrader{
 var conn connections
 
 // 事件响应格式
-type eventHandler func(clientId string, ws *websocket.Conn, messageType int, data []byte) bool
+type eventHandler func(clientId string, ws *websocket.Conn, messageType int, data map[string]interface{}) bool
 
 // ws数据交互格式，基于json，event字段必选
 type protocol struct {
@@ -118,9 +118,14 @@ func (c *WSWrapper) readMessage(clientId string, ws *websocket.Conn) {
 			}
 			continue
 		}
-		p.ClientId = clientId
-		data, _ = json.MarshalIndent(p, "", "	")
-		v.(eventHandler)(clientId, ws, messageType, data)
+
+		var m = map[string]interface{}{
+			"client_id": p.ClientId,
+			"event":     p.Event,
+			"data":      p.Data,
+		}
+
+		v.(eventHandler)(clientId, ws, messageType, m)
 	}
 }
 
