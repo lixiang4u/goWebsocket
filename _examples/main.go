@@ -36,6 +36,6 @@ func main() {
 
 	})
 
-	fmt.Printf("Now listening on: http://%s", addr)
+	fmt.Printf("Now listening on: http://%s\r\n", addr)
 	_ = http.ListenAndServe(addr, nil)
 }
