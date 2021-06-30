@@ -31,7 +31,7 @@
     ws.onmessage = function (msg) {
         console.log('[onmessage]', msg);
 
-        content.innerText += "\r\n【消息】" + (new Date()) + "\t" + msg.data;
+        content.innerText += "\r\n【收到消息】" + (new Date()) + "\t" + msg.data;
 
     };
     ws.onclose = function (event) {
@@ -46,7 +46,11 @@
         if (!msg.value) {
             return false
         }
-        ws.send(JSON.stringify({"event": "broadcast", "data": msg.value}))
+        let _msg = JSON.stringify({"event": "broadcast", "data": msg.value}, null, 4);
+
+        content.innerText += "\r\n【发送消息】" + (new Date()) + "\t" + _msg;
+
+        ws.send(_msg)
     })
 
 
