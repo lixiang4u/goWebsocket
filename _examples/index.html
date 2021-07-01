@@ -16,30 +16,37 @@
 
 <script type="text/javascript">
 
+    let ws = null;
     let content = document.getElementById('content');
     let msg = document.getElementById('msg');
     let broadcast = document.getElementById('broadcast');
 
-    // 注册websocket事件
-    let ws = new WebSocket('ws://127.0.0.1:8088/register');
-    ws.onopen = function (event) {
-        console.log('[onopen]', event);
+    function newWS() {
+        // 注册websocket事件
+        ws = new WebSocket('ws://127.0.0.1:8088/register');
+        ws.onopen = function (event) {
+            console.log('[onopen]', event);
 
-        ws.send(JSON.stringify({"event": "list", "data": null}))
+            ws.send(JSON.stringify({"event": "list", "data": null}))
 
-    };
-    ws.onmessage = function (msg) {
-        console.log('[onmessage]', msg);
+        };
+        ws.onmessage = function (msg) {
+            console.log('[onmessage]', msg);
 
-        content.innerText += "\r\n【收到消息】" + (new Date()) + "\t" + msg.data;
+            content.innerText += "\r\n【收到消息】" + (new Date()) + "\t" + msg.data;
 
-    };
-    ws.onclose = function (event) {
-        console.log('[onclose]', event);
-    };
-    ws.onerror = function (event) {
-        console.log('[onerror]', event);
-    };
+        };
+        ws.onclose = function (event) {
+            console.log('[onclose]', event);
+
+            setTimeout(newWS, 2000);
+
+        };
+        ws.onerror = function (event) {
+            console.log('[onerror]', event);
+        };
+    }
+
 
     // 发送广播消息
     broadcast.addEventListener('click', function () {
@@ -50,9 +57,14 @@
 
         content.innerText += "\r\n【发送消息】" + (new Date()) + "\t" + _msg;
 
+        if (ws.readyState != 1) {
+            alert('消息通道故障，请稍后再试！');
+            return false;
+        }
         ws.send(_msg)
-    })
+    });
 
+    newWS();
 
 </script>
 
