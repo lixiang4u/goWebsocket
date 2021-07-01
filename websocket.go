@@ -120,7 +120,7 @@ func (c *WSWrapper) readMessage(clientId string, ws *websocket.Conn) {
 		}
 
 		var m = map[string]interface{}{
-			"client_id": p.ClientId,
+			"client_id": clientId,
 			"event":     p.Event,
 			"data":      p.Data,
 		}
