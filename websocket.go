@@ -89,7 +89,7 @@ func (c *WSWrapper) readMessage(clientId string, ws *websocket.Conn) {
 		messageType, data, err := ws.ReadMessage()
 		if err != nil {
 			if c.Config.Debug {
-				Log2("[WebsocketError] %s", err.Error())
+				Log2("[WebsocketError] %s, %s", clientId, err.Error())
 			}
 			conn.Conn.Delete(clientId)
 			break
@@ -139,15 +139,20 @@ func (c *WSWrapper) writeMessage(clientId string, ws *websocket.Conn) {
 	for {
 		select {
 		case <-ticker.C:
+			// 检测是否已经在 ReadMessage 时断开，如果是需要跳出 WriteMessage 循环
+			_, ok := conn.Conn.Load(clientId)
+			if !ok {
+				break
+			}
 			if err := ws.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				if c.Config.Debug {
-					Log2("[WebsocketTickerWriteError] %s", err.Error())
+					Log2("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
 				}
 				return
 			}
 			if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
 				if c.Config.Debug {
-					Log2("[WebsocketTickerWriteError] %s", err.Error())
+					Log2("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
 				}
 				return
 			}
