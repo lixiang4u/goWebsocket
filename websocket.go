@@ -38,8 +38,11 @@ type WebsocketManager struct {
 	}
 }
 
-func NewWebsocketManager() *WebsocketManager {
+func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	var x = new(WebsocketManager)
+	if len(debug) > 0 {
+		x.Config.Debug = debug[0]
+	}
 	x.Conn = &ConnectionMutex{
 		Conn:  make(map[string]*ConnectionContext),
 		Uid:   make(map[string]map[string]bool),
@@ -67,7 +70,7 @@ func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, respo
 	go x.writeMessage(clientId, ws)
 	go x.readMessage(clientId, ws)
 
-	x.eventConnectHandler(clientId, ws, 0, protocol{
+	x.eventConnectHandler(clientId, ws, 0, EventProtocol{
 		ClientId: clientId,
 		Event:    Event(EventConnect).String(),
 		Data:     nil,
@@ -86,7 +89,7 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 	for {
 		messageType, data, err := ws.ReadMessage()
 		if err != nil {
-			x.eventCloseHandler(clientId, ws, messageType, protocol{
+			x.eventCloseHandler(clientId, ws, messageType, EventProtocol{
 				ClientId: clientId,
 				Event:    Event(EventClose).String(),
 				Data:     nil,
@@ -95,7 +98,7 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 		}
 		x.Log("[WebsocketRequest] %s", string(data))
 
-		var p protocol
+		var p EventProtocol
 		if err := json.Unmarshal(data, &p); err != nil {
 			x.Log("[WebsocketRequestProtocolError] %s", string(data))
 			continue

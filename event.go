@@ -28,7 +28,7 @@ const (
 type Event int
 
 // EventHandler 事件响应格式
-type EventHandler func(clientId string, ws *websocket.Conn, messageType int, data protocol) bool
+type EventHandler func(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool
 
 func (x Event) String() string {
 	var eventName = ""

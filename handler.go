@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventHelpHandler] %s", clientId)
 
 	var events = make([]string, 0)
@@ -20,7 +20,7 @@ func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn,
 	return true
 }
 
-func (x *WebsocketManager) eventConnectHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventConnectHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventConnectHandler] %s", clientId)
 
 	x.Conn.Store(clientId, ws)
@@ -28,7 +28,7 @@ func (x *WebsocketManager) eventConnectHandler(clientId string, ws *websocket.Co
 	return true
 }
 
-func (x *WebsocketManager) eventCloseHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventCloseHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventCloseHandler] %s, %d", clientId, messageType)
 
 	x.Conn.Remove(clientId)
@@ -36,7 +36,7 @@ func (x *WebsocketManager) eventCloseHandler(clientId string, ws *websocket.Conn
 	return true
 }
 
-func (x *WebsocketManager) eventBindUidHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventBindUidHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventBindUidHandler] %s", clientId)
 
 	switch data.Data.(type) {
@@ -51,12 +51,12 @@ func (x *WebsocketManager) eventBindUidHandler(clientId string, ws *websocket.Co
 	return false
 }
 
-func (x *WebsocketManager) eventPingHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventPingHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventPingHandler] %s, %d", clientId, messageType)
 	return true
 }
 
-func (x *WebsocketManager) eventSendToClientHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventSendToClientHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventSendToClientHandler] %s", clientId)
 
 	switch data.Data.(type) {
@@ -68,7 +68,7 @@ func (x *WebsocketManager) eventSendToClientHandler(clientId string, ws *websock
 	return true
 }
 
-func (x *WebsocketManager) eventSendToUidHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventSendToUidHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventSendToUidHandler] %s", clientId)
 
 	var clients []string
@@ -85,7 +85,7 @@ func (x *WebsocketManager) eventSendToUidHandler(clientId string, ws *websocket.
 	return true
 }
 
-func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventSendToGroupHandler] %s", clientId)
 
 	var clients []string
@@ -102,7 +102,7 @@ func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocke
 	return true
 }
 
-func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventBroadcastHandler] %s", clientId)
 	for clientId, _ := range x.Conn.Conn {
 		x.Send(clientId, messageType, []byte("[data.Data]"))
@@ -110,7 +110,7 @@ func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.
 	return true
 }
 
-func (x *WebsocketManager) eventJoinGroupHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventJoinGroupHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventJoinGroupHandler] %s", clientId)
 
 	switch data.Data.(type) {
@@ -122,7 +122,7 @@ func (x *WebsocketManager) eventJoinGroupHandler(clientId string, ws *websocket.
 	}
 }
 
-func (x *WebsocketManager) eventLeaveGroupHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventLeaveGroupHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventLeaveGroupHandler] %s", clientId)
 
 	switch data.Data.(type) {
@@ -134,7 +134,7 @@ func (x *WebsocketManager) eventLeaveGroupHandler(clientId string, ws *websocket
 	}
 }
 
-func (x *WebsocketManager) eventListGroupHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventListGroupHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventListGroupHandler] %s", clientId)
 
 	x.Send(clientId, messageType, x.ToBytes(H{
@@ -144,7 +144,7 @@ func (x *WebsocketManager) eventListGroupHandler(clientId string, ws *websocket.
 	return true
 }
 
-func (x *WebsocketManager) eventListGroupClientHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+func (x *WebsocketManager) eventListGroupClientHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventListGroupClientHandler] %s", clientId)
 
 	switch data.Data.(type) {
