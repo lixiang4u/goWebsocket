@@ -2,7 +2,9 @@ package go_websocket
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -10,8 +12,8 @@ import (
 
 const (
 	pongWait    = 60 * time.Second
-	writeWait   = 10 * time.Second
-	writeTicker = 10 * time.Second
+	writeWait   = 45 * time.Second
+	writeTicker = 45 * time.Second
 
 	readLimitSize   = 1024
 	readBufferSize  = 1024
@@ -26,10 +28,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var conn connections
-
-// 事件响应格式
-type eventHandler func(clientId string, ws *websocket.Conn, messageType int, data map[string]interface{}) bool
+type H map[string]interface{}
 
 // ws数据交互格式，基于json，event字段必选
 type protocol struct {
@@ -38,47 +37,53 @@ type protocol struct {
 	Data     interface{} `json:"data"`
 }
 
-// ws的全局配置
-type Conf struct {
-	Debug bool
+type WebsocketManager struct {
+	eventHandlers map[string]EventHandler
+	Conn          *ConnectionMutex
+	Config        struct {
+		Debug bool
+	}
 }
 
-// 当前ws对外包装
-type WSWrapper struct {
-	eventHandlers sync.Map
-	Config        Conf
-}
-
-// 全局连接信息
-type connections struct {
-	Conn sync.Map
+func NewWebsocketManager() *WebsocketManager {
+	var x = new(WebsocketManager)
+	x.Conn = &ConnectionMutex{
+		Conn:  make(map[string]*ConnectionContext),
+		Uid:   make(map[string]map[string]bool),
+		Group: make(map[string]map[string]bool),
+		mutex: sync.RWMutex{},
+	}
+	x.registerEvents()
+	return x
 }
 
 // iris版本的启动
-//func (c *WSWrapper) RunWithIris(ctx iris.Context) {
+//func (x *WebsocketManager) RunWithIris(ctx iris.Context) {
 //	c.Run(ctx.ResponseWriter(), ctx.Request(), nil)
 //}
 
-func (c *WSWrapper) Run(w http.ResponseWriter, r *http.Request, responseHeader http.Header) {
+// Handler 开始处理websocket请求
+func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, responseHeader http.Header) {
 	ws, err := upgrader.Upgrade(w, r, responseHeader)
 	if err != nil {
-		Log2("[WebsocketUpgradeError] %s", err.Error())
+		x.Log("[WebsocketUpgradeError] %s", err.Error())
 		return
 	}
-
-	// 记录用户
 	var clientId = UUID()
-	conn.Conn.Store(clientId, ws)
 
-	go c.writeMessage(clientId, ws)
-	go c.readMessage(clientId, ws)
+	go x.writeMessage(clientId, ws)
+	go x.readMessage(clientId, ws)
 
+	x.eventConnectHandler(clientId, ws, 0, protocol{
+		ClientId: clientId,
+		Event:    Event(EventConnect).String(),
+		Data:     nil,
+	})
 }
 
 // 接受请求并转给handler处理
-func (c *WSWrapper) readMessage(clientId string, ws *websocket.Conn) {
+func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 	defer func() { _ = ws.Close() }()
-
 	ws.SetReadLimit(readLimitSize)
 	_ = ws.SetReadDeadline(time.Now().Add(pongWait))
 	ws.SetPongHandler(func(appData string) error {
@@ -88,126 +93,105 @@ func (c *WSWrapper) readMessage(clientId string, ws *websocket.Conn) {
 	for {
 		messageType, data, err := ws.ReadMessage()
 		if err != nil {
-			if c.Config.Debug {
-				Log2("[WebsocketError] %s, %s", clientId, err.Error())
-			}
-			conn.Conn.Delete(clientId)
+			x.eventCloseHandler(clientId, ws, messageType, protocol{
+				ClientId: clientId,
+				Event:    Event(EventClose).String(),
+				Data:     nil,
+			})
 			break
 		}
-		if c.Config.Debug {
-			Log2("[WebsocketRequest] %s", string(data))
-		}
+		x.Log("[WebsocketRequest] %s", string(data))
 
 		var p protocol
 		if err := json.Unmarshal(data, &p); err != nil {
-			if c.Config.Debug {
-				Log2("[WebsocketRequestProtocolError] %s", string(data))
-			}
+			x.Log("[WebsocketRequestProtocolError] %s", string(data))
 			continue
 		}
-		v, ok := c.eventHandlers.Load(p.Event)
+		v, ok := x.eventHandlers[p.Event]
 		if !ok {
-			if c.Config.Debug {
-				Log2("[WebsocketEventNotFound] %s", p.Event)
-			}
+			x.Log("[WebsocketEventNotFound] %s", p.Event)
 			continue
 		}
-		if v.(eventHandler) == nil {
-			if c.Config.Debug {
-				Log2("[WebsocketEventHandlerNil] %s", p.Event)
-			}
+		if v == nil {
+			x.Log("[WebsocketEventHandlerNil] %s", p.Event)
 			continue
 		}
 
-		var m = map[string]interface{}{
-			"client_id": clientId,
-			"event":     p.Event,
-			"data":      p.Data,
-		}
+		p.ClientId = clientId
 
-		v.(eventHandler)(clientId, ws, messageType, m)
+		v(clientId, ws, messageType, p)
 	}
 }
 
 // 其实就是心跳逻辑
-func (c *WSWrapper) writeMessage(clientId string, ws *websocket.Conn) {
+func (x *WebsocketManager) writeMessage(clientId string, ws *websocket.Conn) {
 	defer func() { _ = ws.Close() }()
 
 	ticker := time.NewTicker(writeTicker)
 	defer ticker.Stop()
 
+EXIT:
 	for {
 		select {
 		case <-ticker.C:
 			// 检测是否已经在 ReadMessage 时断开，如果是需要跳出 WriteMessage 循环
-			_, ok := conn.Conn.Load(clientId)
-			if !ok {
-				break
+			if x.Conn.LoadConn(clientId) == nil {
+				//x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
+				break EXIT
 			}
 			if err := ws.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-				if c.Config.Debug {
-					Log2("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
-				}
-				return
+				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
+				break EXIT
 			}
 			if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
-				if c.Config.Debug {
-					Log2("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
-				}
-				return
+				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
+				break EXIT
 			}
 		}
 	}
 }
 
-// 注册事件
-func (c *WSWrapper) On(eventName string, f eventHandler) bool {
+// On 注册事件
+func (x *WebsocketManager) On(eventName string, f EventHandler) bool {
 	if len(eventName) < 1 {
 		return false
 	}
-	if _, ok := c.eventHandlers.Load(eventName); ok {
-		return true
-	}
-	c.eventHandlers.Store(eventName, f)
-
+	//if _, ok := x.eventHandlers.Load(eventName); ok {
+	//	return true
+	//}
+	x.eventHandlers[eventName] = f
 	return true
 }
 
-// 对外接口，用于发送ws消息到指定clientId
-func WSendMessage(clientId string, messageType int, data []byte) bool {
-	v, ok := conn.Conn.Load(clientId)
-	if !ok {
-		return false
+func (x *WebsocketManager) registerEvents() {
+	if x.eventHandlers == nil {
+		x.eventHandlers = make(map[string]EventHandler)
 	}
-	if v.(*websocket.Conn) == nil {
-		return false
-	}
-	if err := v.(*websocket.Conn).SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-		return false
-	}
-	if err := v.(*websocket.Conn).WriteMessage(messageType, data); err != nil {
-		return false
-	}
-	return true
+	x.eventHandlers[Event(EventHelp).String()] = x.eventHelpHandler
+	x.eventHandlers[Event(EventConnect).String()] = x.eventConnectHandler
+	x.eventHandlers[Event(EventClose).String()] = x.eventCloseHandler
+	x.eventHandlers[Event(EventPing).String()] = x.eventPingHandler
+	x.eventHandlers[Event(EventBindUid).String()] = x.eventBindUidHandler
+	x.eventHandlers[Event(EventSendToClient).String()] = x.eventSendToClientHandler
+	x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
+	x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
+	//x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
+	x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
+	x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
+	x.eventHandlers[Event(EventListGroup).String()] = x.eventListGroupHandler
 }
 
-func WSConnectionList() map[string]interface{} {
-	var data = make(map[string]interface{})
-	conn.Conn.Range(func(key, value interface{}) bool {
-		data[key.(string)] = value.(*websocket.Conn).UnderlyingConn().RemoteAddr().String()
-		return true
-	})
-	return data
+func (x *WebsocketManager) Log(format string, v ...interface{}) {
+	if x.Config.Debug {
+		log.Println(fmt.Sprintf(format, v...))
+	}
 }
 
-func WSBroadcast(clientId string, messageType int, data []byte) {
-	conn.Conn.Range(func(key, value interface{}) bool {
-		//跳过广播发送给自己
-		if key.(string) == clientId {
-			return true
-		}
-		_ = value.(*websocket.Conn).WriteMessage(messageType, data)
-		return true
-	})
+func (x *WebsocketManager) LogForce(format string, v ...interface{}) {
+	log.Println(fmt.Sprintf(format, v...))
+}
 
+func (x *WebsocketManager) ToBytes(v interface{}) []byte {
+	buff, _ := json.MarshalIndent(v, "", "\t")
+	return buff
 }

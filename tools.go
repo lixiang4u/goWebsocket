@@ -1,9 +1,8 @@
 package go_websocket
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/google/uuid"
-	"log"
 	"strings"
 )
 
@@ -15,6 +14,8 @@ func UUID(length ...int) string {
 	return s
 }
 
-func Log2(format string, v ...interface{}) {
-	log.Println(fmt.Sprintf(format, v...))
+func ToJson(v interface{}) string {
+	buf, _ := json.MarshalIndent(v, "", "\t")
+	//log.Println("[JSON]", string(buf))
+	return string(buf)
 }
