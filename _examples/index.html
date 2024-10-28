@@ -31,6 +31,7 @@
     <input type="button" id="joinGroup" name="JoinGroup" value="JoinGroup">
     <input type="button" id="leaveGroup" name="LeaveGroup" value="LeaveGroup">
     <input type="button" id="listGroup" name="ListGroup" value="ListGroup">
+    <input type="button" id="listGroupClient" name="ListGroupClient" value="ListGroupClient">
 
 </div>
 
@@ -38,79 +39,82 @@
 
 <script type="text/javascript">
 
-  let ws = null;
-  let content = document.getElementById('content');
-  let msg = document.getElementById('msg');
+    let ws = null;
+    let content = document.getElementById('content');
+    let msg = document.getElementById('msg');
 
-  function newWS() {
-    // 注册websocket事件
-    ws = new WebSocket('ws://127.0.0.1:8088/register');
-    ws.onopen = function (event) {
-      console.log('[onopen]', event);
+    function newWS() {
+        // 注册websocket事件
+        ws = new WebSocket('ws://127.0.0.1:8088/register');
+        ws.onopen = function (event) {
+            console.log('[onopen]', event);
 
-      ws.send(JSON.stringify({ "event": "list", "data": null }))
+            ws.send(JSON.stringify({"event": "list", "data": null}))
 
-    };
-    ws.onmessage = function (msg) {
-      console.log('[onmessage]', msg);
+        };
+        ws.onmessage = function (msg) {
+            console.log('[onmessage]', msg);
 
-      content.innerText += "\r\n【收到消息】" + (new Date()) + "\t" + msg.data;
+            // content.innerText += "\r\n【收到消息】" + (new Date()) + "\t" + msg.data;
+            content.innerText = "【收到消息】" + (new Date()) + "\t" + msg.data + "\r\n" + content.innerText;
 
-    };
-    ws.onclose = function (event) {
-      console.log('[onclose]', event);
+        };
+        ws.onclose = function (event) {
+            console.log('[onclose]', event);
 
-      // setTimeout(newWS, 2000);
+            // setTimeout(newWS, 2000);
 
-    };
-    ws.onerror = function (event) {
-      console.log('[onerror]', event);
-    };
-  }
-
-
-  function send(eventName, data) {
-    if (!data) {
-      // return false
+        };
+        ws.onerror = function (event) {
+            console.log('[onerror]', event);
+        };
     }
-    let _msg = JSON.stringify({ "event": eventName, "data": data }, null, 4);
 
-    content.innerText += "\r\n【发送消息】" + (new Date()) + "\t" + _msg;
 
-    if (ws.readyState != 1) {
-      console.error('消息通道故障，请稍后再试！');
-      return false;
+    function send(eventName, data) {
+        if (!data) {
+            // return false
+        }
+        let _msg = JSON.stringify({"event": eventName, "data": data}, null, 4);
+
+        // content.innerText += "\r\n【发送消息】" + (new Date()) + "\t" + _msg;
+        content.innerText = "【发送消息】" + (new Date()) + "\t" + _msg + "\r\n" + content.innerText;
+
+        if (ws.readyState != 1) {
+            console.error('消息通道故障，请稍后再试！');
+            return false;
+        }
+        ws.send(_msg)
     }
-    ws.send(_msg)
-  }
 
-  const eventNames = [
-    'help',
-    'connect',
-    'close',
-    'ping',
-    'bindUid',
-    'sendToClient',
-    'sendToUid',
-    'sendToGroup',
-    'broadcast',
-    'joinGroup',
-    'leaveGroup',
-    'listGroup',
-  ];
-  eventNames.map(eventName => {
-    document.getElementById(eventName).addEventListener('click', function () {
-      send(eventName, msg.value)
-    });
-  })
+    const eventNames = [
+        'help',
+        'connect',
+        'close',
+        'ping',
+        'bindUid',
+        'sendToClient',
+        'sendToUid',
+        'sendToGroup',
+        'broadcast',
+        'joinGroup',
+        'leaveGroup',
+        'listGroup',
+        'listGroupClient',
+    ];
+    eventNames.map(eventName => {
+        document.getElementById(eventName).addEventListener('click', function () {
+            send(eventName, msg.value)
+        });
+    })
 
-  newWS();
+    newWS();
 
-  setInterval(() => {
-    console.log('[ping]')
-    send('ping', msg.value)
+    setInterval(() => {
+        console.log('[ping]')
+        send('ping', msg.value)
 
-  }, 1000 * 45)
+    }, 1000 * 45)
 
 </script>
 

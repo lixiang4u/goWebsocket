@@ -19,9 +19,10 @@ const (
 	EventSendToGroup  = iota
 	EventBroadcast    = iota
 
-	EventJoinGroup  = iota
-	EventLeaveGroup = iota
-	EventListGroup  = iota
+	EventJoinGroup       = iota
+	EventLeaveGroup      = iota
+	EventListGroup       = iota
+	EventListGroupClient = iota
 )
 
 type Event int
@@ -56,6 +57,8 @@ func (x Event) String() string {
 		eventName = "LeaveGroup"
 	case EventListGroup:
 		eventName = "ListGroup"
+	case EventListGroupClient:
+		eventName = "ListGroupClient"
 	default:
 		panic("错误事件")
 	}

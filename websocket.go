@@ -30,13 +30,6 @@ var upgrader = websocket.Upgrader{
 
 type H map[string]interface{}
 
-// ws数据交互格式，基于json，event字段必选
-type protocol struct {
-	ClientId string      `json:"client_id"`
-	Event    string      `json:"event"`
-	Data     interface{} `json:"data"`
-}
-
 type WebsocketManager struct {
 	eventHandlers map[string]EventHandler
 	Conn          *ConnectionMutex
@@ -179,6 +172,7 @@ func (x *WebsocketManager) registerEvents() {
 	x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
 	x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
 	x.eventHandlers[Event(EventListGroup).String()] = x.eventListGroupHandler
+	x.eventHandlers[Event(EventListGroupClient).String()] = x.eventListGroupClientHandler
 }
 
 func (x *WebsocketManager) Log(format string, v ...interface{}) {

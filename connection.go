@@ -2,7 +2,6 @@ package go_websocket
 
 import (
 	"github.com/gorilla/websocket"
-	"log"
 	"sync"
 )
 
@@ -11,12 +10,6 @@ type ConnectionContext struct {
 	Group map[string]bool
 	Uid   string
 }
-
-//type connData struct {
-//	Conn  *websocket.Conn
-//	Group map[string]bool
-//	Uid   string
-//}
 
 type ConnectionMutex struct {
 	Conn  map[string]*ConnectionContext // [ClientId => CONNECTION_DATA]
@@ -35,17 +28,11 @@ func (x *ConnectionMutex) Store(clientId string, ws *websocket.Conn) {
 	}
 	tmp.Conn = ws
 	x.Conn[clientId] = tmp
-
-	log.Println("[Store.Conn]", ToJson(x.Conn))
 }
 
 func (x *ConnectionMutex) Remove(clientId string) {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
-
-	log.Println("[clientId]", clientId)
-	log.Println("[X]", ToJson(x.Conn[clientId]))
-	log.Println("[x.Conn]", ToJson(x.Conn))
 
 	var tmp = x.Conn[clientId]
 	delete(x.Uid[tmp.Uid], clientId)
@@ -53,27 +40,23 @@ func (x *ConnectionMutex) Remove(clientId string) {
 		delete(x.Group[g], clientId)
 	}
 	delete(x.Conn, clientId)
-
-	log.Println("[Remove.Conn]", ToJson(x.Conn))
 }
 
 func (x *ConnectionMutex) SetUid(clientId, uid string) {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
+	var prevUid = x.Conn[clientId].Uid
+	delete(x.Uid[prevUid], clientId)
+
+	if x.Uid[uid] == nil {
+		x.Uid[uid] = make(map[string]bool)
+	}
+	x.Uid[uid][clientId] = true
+
 	var tmp = x.Conn[clientId]
 	tmp.Uid = uid
 	x.Conn[clientId] = tmp
-
-	var tmpUid = x.Uid[uid]
-	if tmpUid == nil {
-		tmpUid = make(map[string]bool)
-	}
-	tmpUid[clientId] = true
-	x.Uid[uid] = tmpUid
-
-	log.Println("[x.Uid]", ToJson(x.Uid))
-
 }
 
 func (x *ConnectionMutex) GetUidClientId(uid string) []string {
@@ -84,10 +67,6 @@ func (x *ConnectionMutex) GetUidClientId(uid string) []string {
 	for clientId, _ := range x.Uid[uid] {
 		clientIds = append(clientIds, clientId)
 	}
-
-	log.Println("[GetUidClientId.uid]", uid)
-	log.Println("[x.Uid]", ToJson(x.Uid))
-	log.Println("[GetUidClientId.clientIds]", ToJson(clientIds))
 
 	return clientIds
 }
@@ -129,6 +108,17 @@ func (x *ConnectionMutex) ListGroup() []string {
 	}
 
 	return groups
+}
+
+func (x *ConnectionMutex) ListGroupClientIds(groupName string) []string {
+	x.mutex.Lock()
+	defer x.mutex.Unlock()
+
+	var clientIds = make([]string, 0)
+	for clientId, _ := range x.Group[groupName] {
+		clientIds = append(clientIds, clientId)
+	}
+	return clientIds
 }
 
 func (x *ConnectionMutex) GetGroupClientIds(groupName string) []string {

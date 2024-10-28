@@ -144,6 +144,20 @@ func (x *WebsocketManager) eventListGroupHandler(clientId string, ws *websocket.
 	return true
 }
 
+func (x *WebsocketManager) eventListGroupClientHandler(clientId string, ws *websocket.Conn, messageType int, data protocol) bool {
+	x.Log("[eventListGroupClientHandler] %s", clientId)
+
+	switch data.Data.(type) {
+	case string:
+		x.Send(clientId, messageType, x.ToBytes(H{
+			"groups": x.Conn.ListGroupClientIds(data.Data.(string)),
+		}))
+		return true
+	}
+
+	return true
+}
+
 // Send 对外接口，用于发送ws消息到指定clientId
 func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) bool {
 	var conn = x.Conn.LoadConn(clientId)
@@ -158,24 +172,3 @@ func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) b
 	}
 	return true
 }
-
-//
-//func (x *WebsocketManager) WSConnectionList() map[string]interface{} {
-//	var data = make(map[string]interface{})
-//	x.Conn.Range(func(key, value interface{}) bool {
-//		data[key.(string)] = value.(*websocket.Conn).UnderlyingConn().RemoteAddr().String()
-//		return true
-//	})
-//	return data
-//}
-//
-//func (x *WebsocketManager) Broadcast(clientId string, messageType int, data []byte) {
-//	x.Conn.Range(func(key, value interface{}) bool {
-//		//跳过广播发送给自己
-//		if key.(string) == clientId {
-//			return true
-//		}
-//		_ = value.(*websocket.Conn).WriteMessage(messageType, data)
-//		return true
-//	})
-//}
