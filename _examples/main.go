@@ -27,6 +27,13 @@ func main() {
 	//	return true
 	//})
 
+	//ws.On(go_websocket.Event(go_websocket.EventHelp).String(), func(clientId string, ws *websocket.Conn, messageType int, data go_websocket.EventProtocol) bool {
+	//
+	//	log.Println("[执行了自定义事件]", clientId)
+	//
+	//	return true
+	//})
+
 	ws.Config.Debug = true
 
 	http.Handle("/", http.FileServer(http.Dir("./_examples")))

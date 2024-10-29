@@ -1,47 +1,64 @@
+# demo启动方式
+
+```code
+go run _examples/main.go
+```
+
+浏览器打开[http://127.0.0.1:8088](http://127.0.0.1:8088)
+
 # 使用方式
 
 ### 说明
 - 基于`github.com/gorilla/websocket`包
-- 增加了`client_id`，区分客户端
-- 可以发送消息到指定`client_id`
-
 
 ### 导入包
-```go
+```code
 go get github.com/lixiang4u/go-websocket
 ```
 
 ### 实例化对象
-```go
-var ws = go_websocket.WSWrapper{}
+```code
+import (
+	go_websocket "github.com/lixiang4u/go-websocket"
+)
+
+var ws = go_websocket.NewWebsocketManager()
 ```
 
 ### 注册响应事件
-```go
+
+- 内置事件返回true才会执行自定义事件，否则直接执行自定义事件
+
+```code
 ws.On(eventName string, f eventHandler)
 ```
 
 - 需要客户端请求数据格式为`protocol`对象的json字面量
-```go
-type protocol struct {
+```code
+type EventProtocol struct {
 	Event    string      `json:"event"`
 	Data     interface{} `json:"data"`
 }
 ```
 
-- 测试返回的数据格式为`protocol`对象的json字面量
-```go
-type protocol struct {
-	ClientId string      `json:"client_id"`
-	Event    string      `json:"event"`
-	Data     interface{} `json:"data"`
-}
+- 内置事件如下（部分事件不直接对外暴露）：
+```code
+"connect",
+"sendToUid",
+"listGroup",
+"listGroupClient",
+"joinGroup",
+"leaveGroup",
+"close",
+"ping",
+"bindUid",
+"sendToClient",
+"sendToGroup"
 ```
-
 
 ### 运行
-```go
-ws.Run(w http.ResponseWriter, r *http.Request, responseHeader http.Header)
+```code
+ws.Handler(w http.ResponseWriter, r *http.Request, responseHeader http.Header)
 ```
 
 ### 广播聊天截图

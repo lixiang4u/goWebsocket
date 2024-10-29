@@ -31,9 +31,10 @@ var upgrader = websocket.Upgrader{
 type H map[string]interface{}
 
 type WebsocketManager struct {
-	eventHandlers map[string]EventHandler
-	Conn          *ConnectionMutex
-	Config        struct {
+	eventHandlers     map[string]EventHandler
+	userEventHandlers map[string]EventHandler
+	Conn              *ConnectionMutex
+	Config            struct {
 		Debug bool
 	}
 }
@@ -103,19 +104,16 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 			x.Log("[WebsocketRequestProtocolError] %s", string(data))
 			continue
 		}
-		v, ok := x.eventHandlers[p.Event]
-		if !ok {
-			x.Log("[WebsocketEventNotFound] %s", p.Event)
-			continue
-		}
-		if v == nil {
-			x.Log("[WebsocketEventHandlerNil] %s", p.Event)
-			continue
-		}
-
 		p.ClientId = clientId
 
-		v(clientId, ws, messageType, p)
+		// 先执行内置事件，在执行用户事件
+		var runNext = true
+		if v, ok := x.eventHandlers[p.Event]; ok && v != nil {
+			runNext = v(clientId, ws, messageType, p)
+		}
+		if v, ok := x.userEventHandlers[p.Event]; ok && v != nil && runNext {
+			v(clientId, ws, messageType, p)
+		}
 	}
 }
 
@@ -152,10 +150,10 @@ func (x *WebsocketManager) On(eventName string, f EventHandler) bool {
 	if len(eventName) < 1 {
 		return false
 	}
-	//if _, ok := x.eventHandlers.Load(eventName); ok {
-	//	return true
-	//}
-	x.eventHandlers[eventName] = f
+	if x.userEventHandlers == nil {
+		x.userEventHandlers = make(map[string]EventHandler)
+	}
+	x.userEventHandlers[eventName] = f
 	return true
 }
 
