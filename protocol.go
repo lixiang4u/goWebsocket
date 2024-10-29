@@ -6,3 +6,11 @@ type EventProtocol struct {
 	Event    string      `json:"event"`
 	Data     interface{} `json:"data"`
 }
+
+type EventProtocolConnect struct {
+	ClientId string `json:"client_id"`
+	Event    string `json:"event"`
+	Data     struct {
+		ClientId string `json:"client_id"`
+	} `json:"data"`
+}

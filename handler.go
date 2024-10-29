@@ -32,6 +32,16 @@ func (x *WebsocketManager) eventConnectHandler(clientId string, ws *websocket.Co
 
 	x.Conn.Store(clientId, ws)
 
+	x.Send(clientId, websocket.TextMessage, x.ToBytes(EventProtocolConnect{
+		ClientId: clientId,
+		Event:    Event(EventConnect).String(),
+		Data: struct {
+			ClientId string `json:"client_id"`
+		}(struct{ ClientId string }{
+			ClientId: clientId,
+		}),
+	}))
+
 	return true
 }
 
@@ -39,6 +49,7 @@ func (x *WebsocketManager) eventCloseHandler(clientId string, ws *websocket.Conn
 	x.Log("[eventCloseHandler] %s, %d", clientId, messageType)
 
 	x.Conn.Remove(clientId)
+	// TODO 删除Uid数据，删除Group数据
 
 	return true
 }
