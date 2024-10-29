@@ -13,9 +13,16 @@ func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn,
 	for event, _ := range x.eventHandlers {
 		events = append(events, event)
 	}
+
+	var userEvents = make([]string, 0)
+	for event, _ := range x.userEventHandlers {
+		userEvents = append(userEvents, event)
+	}
+
 	x.Send(clientId, websocket.TextMessage, x.ToBytes(H{
-		"events":   events,
-		"clientId": clientId,
+		"baseEvents": events,
+		"userEvents": userEvents,
+		"clientId":   clientId,
 	}))
 	return true
 }
