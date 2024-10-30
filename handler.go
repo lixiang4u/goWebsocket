@@ -54,6 +54,30 @@ func (x *WebsocketManager) eventCloseHandler(clientId string, ws *websocket.Conn
 	return true
 }
 
+func (x *WebsocketManager) eventStatHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
+	x.Log("[eventCloseHandler] %s, %d", clientId, messageType)
+
+	var clientMap = make(map[string]map[string]interface{})
+	for tmpClientId, tmpCtx := range x.Conn.Conn {
+		clientMap[tmpClientId] = make(map[string]interface{})
+		clientMap[tmpClientId]["Uid"] = tmpCtx.Uid
+		clientMap[tmpClientId]["Group"] = tmpCtx.Group
+		clientMap[tmpClientId]["Conn"] = tmpCtx.Conn.RemoteAddr().String()
+	}
+
+	var respData = EventProtocol{
+		ClientId: clientId,
+		Event:    Event(EventStat).String(),
+		Data: map[string]interface{}{
+			"clientMap": clientMap,
+		},
+	}
+
+	x.Send(clientId, websocket.TextMessage, x.ToBytes(respData))
+
+	return true
+}
+
 func (x *WebsocketManager) eventBindUidHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventBindUidHandler] %s", clientId)
 

@@ -10,6 +10,7 @@ const (
 	EventHelp    = iota
 	EventConnect = iota
 	EventClose   = iota
+	EventStat    = iota
 
 	EventPing    = iota
 	EventBindUid = iota
@@ -39,6 +40,8 @@ func (x Event) String() string {
 		eventName = "Connect"
 	case EventClose:
 		eventName = "Close"
+	case EventStat:
+		eventName = "Stat"
 	case EventPing:
 		eventName = "Ping"
 	case EventBindUid:

@@ -175,6 +175,7 @@ func (x *WebsocketManager) registerEvents() {
 	x.eventHandlers[Event(EventHelp).String()] = x.eventHelpHandler
 	x.eventHandlers[Event(EventConnect).String()] = x.eventConnectHandler
 	x.eventHandlers[Event(EventClose).String()] = x.eventCloseHandler
+	x.eventHandlers[Event(EventStat).String()] = x.eventStatHandler
 	x.eventHandlers[Event(EventPing).String()] = x.eventPingHandler
 	x.eventHandlers[Event(EventBindUid).String()] = x.eventBindUidHandler
 	x.eventHandlers[Event(EventSendToClient).String()] = x.eventSendToClientHandler
