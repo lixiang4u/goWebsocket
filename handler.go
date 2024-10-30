@@ -65,11 +65,29 @@ func (x *WebsocketManager) eventStatHandler(clientId string, ws *websocket.Conn,
 		clientMap[tmpClientId]["Conn"] = tmpCtx.Conn.RemoteAddr().String()
 	}
 
+	var userMap = make(map[string][]string)
+	for tmpUid, m := range x.Conn.Uid {
+		userMap[tmpUid] = make([]string, 0)
+		for tmpClientId, _ := range m {
+			userMap[tmpUid] = append(userMap[tmpUid], tmpClientId)
+		}
+	}
+
+	var groupMap = make(map[string][]string)
+	for tmpGroup, m := range x.Conn.Group {
+		groupMap[tmpGroup] = make([]string, 0)
+		for tmpClientId, _ := range m {
+			groupMap[tmpGroup] = append(groupMap[tmpGroup], tmpClientId)
+		}
+	}
+
 	var respData = EventProtocol{
 		ClientId: clientId,
 		Event:    Event(EventStat).String(),
 		Data: map[string]interface{}{
 			"clientMap": clientMap,
+			"userMap":   userMap,
+			"groupMap":  groupMap,
 		},
 	}
 
@@ -81,16 +99,22 @@ func (x *WebsocketManager) eventStatHandler(clientId string, ws *websocket.Conn,
 func (x *WebsocketManager) eventBindUidHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventBindUidHandler] %s", clientId)
 
+	var tmpUid = ""
 	switch data.Data.(type) {
 	case string:
-		x.Conn.SetUid(clientId, data.Data.(string))
+		tmpUid = data.Data.(string)
 	case float64:
-		x.Conn.SetUid(clientId, fmt.Sprintf("%f", data.Data.(float64)))
+		tmpUid = fmt.Sprintf("%f", data.Data.(float64))
 	case float32:
-		x.Conn.SetUid(clientId, fmt.Sprintf("%f", data.Data.(float32)))
-		return true
+		tmpUid = fmt.Sprintf("%f", data.Data.(float32))
 	}
-	return false
+
+	if len(tmpUid) <= 0 {
+		return false
+	}
+	x.Conn.SetUid(clientId, tmpUid)
+
+	return true
 }
 
 func (x *WebsocketManager) eventPingHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
