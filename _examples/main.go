@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	go_websocket "github.com/lixiang4u/go-websocket"
+	"github.com/lixiang4u/goWebsocket"
 	"log"
 	"net/http"
 )
@@ -12,7 +12,7 @@ var (
 )
 
 func main() {
-	var ws = go_websocket.NewWebsocketManager()
+	var ws = goWebsocket.NewWebsocketManager()
 	////ws.Config.Debug = true
 	////注册列表数据查询
 	//ws.On("list", func(clientId string, ws *websocket.Conn, messageType int, data map[string]interface{}) bool {

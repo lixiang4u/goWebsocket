@@ -1,4 +1,4 @@
-package go_websocket
+package goWebsocket
 
 // EventProtocol ws数据交互格式，基于json，event字段必选
 type EventProtocol struct {
