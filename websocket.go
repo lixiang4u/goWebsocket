@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 )
@@ -26,6 +27,14 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
+}
+
+// 阻止部分敏感操作，应由后台验证权限后替代操作
+var blockSensitiveEvents = []string{
+	Event(EventBroadcast).String(),
+	Event(EventBindUid).String(),
+	Event(EventSendToUid).String(),
+	Event(EventListGroup).String(),
 }
 
 type H map[string]interface{}
@@ -106,13 +115,15 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 		}
 		p.ClientId = clientId
 
-		// 先执行内置事件，在执行用户事件
+		// 先执行内置事件（同步操作），在执行用户事件（异步）
 		var runNext = true
-		if v, ok := x.eventHandlers[p.Event]; ok && v != nil {
-			runNext = v(clientId, ws, messageType, p)
+		if !slices.Contains(blockSensitiveEvents, p.Event) {
+			if v, ok := x.eventHandlers[p.Event]; ok && v != nil {
+				runNext = v(clientId, ws, messageType, p)
+			}
 		}
 		if v, ok := x.userEventHandlers[p.Event]; ok && v != nil && runNext {
-			v(clientId, ws, messageType, p)
+			go v(clientId, ws, messageType, p)
 		}
 	}
 }
@@ -169,7 +180,7 @@ func (x *WebsocketManager) registerEvents() {
 	x.eventHandlers[Event(EventSendToClient).String()] = x.eventSendToClientHandler
 	x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
 	x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
-	//x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
+	x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
 	x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
 	x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
 	x.eventHandlers[Event(EventListGroup).String()] = x.eventListGroupHandler
