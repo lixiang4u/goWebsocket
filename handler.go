@@ -127,7 +127,7 @@ func (x *WebsocketManager) eventSendToClientHandler(clientId string, ws *websock
 
 	switch data.Data.(type) {
 	case string:
-		x.Send(data.Data.(string), messageType, []byte(data.Data.(string)))
+		x.Send(data.Data.(string), messageType, x.ToBytes(data))
 		return true
 	}
 
@@ -144,9 +144,9 @@ func (x *WebsocketManager) eventSendToUidHandler(clientId string, ws *websocket.
 	default:
 		return false
 	}
-	var transferBuffer = []byte(data.Data.(string))
-	for _, clientId := range clients {
-		x.Send(clientId, messageType, transferBuffer)
+	var transferBuffer = x.ToBytes(data)
+	for _, tmpClientId := range clients {
+		x.Send(tmpClientId, messageType, transferBuffer)
 	}
 	return true
 }
@@ -161,17 +161,20 @@ func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocke
 	default:
 		return false
 	}
-	var transferBuffer = []byte(data.Data.(string))
-	for _, clientId := range clients {
-		x.Send(clientId, messageType, transferBuffer)
+	var transferBuffer = x.ToBytes(data)
+	for _, tmpClientId := range clients {
+		if clientId == tmpClientId {
+			continue
+		}
+		x.Send(tmpClientId, messageType, transferBuffer)
 	}
 	return true
 }
 
 func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventBroadcastHandler] %s", clientId)
-	for clientId, _ := range x.Conn.Conn {
-		x.Send(clientId, messageType, []byte("[data.Data]"))
+	for tmpClientId, _ := range x.Conn.Conn {
+		x.Send(tmpClientId, messageType, x.ToBytes(data))
 	}
 	return true
 }
@@ -235,6 +238,15 @@ func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) b
 	}
 	if err := conn.WriteMessage(messageType, data); err != nil {
 		return false
+	}
+	return true
+}
+
+// SendToGroup 发送消息到组
+func (x *WebsocketManager) SendToGroup(groupName string, messageType int, data []byte) bool {
+	var clientIds = x.Conn.ListGroupClientIds(groupName)
+	for _, clientId := range clientIds {
+		x.Send(clientId, messageType, data)
 	}
 	return true
 }
