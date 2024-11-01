@@ -113,7 +113,6 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 			x.Log("[WebsocketRequestProtocolError] %s", string(data))
 			continue
 		}
-		p.ClientId = clientId
 
 		// 先执行内置事件（同步操作），在执行用户事件（异步）
 		var runNext = true

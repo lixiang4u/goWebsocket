@@ -125,29 +125,25 @@ func (x *WebsocketManager) eventPingHandler(clientId string, ws *websocket.Conn,
 func (x *WebsocketManager) eventSendToClientHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventSendToClientHandler] %s", clientId)
 
-	switch data.Data.(type) {
-	case string:
-		x.Send(data.Data.(string), messageType, x.ToBytes(data))
-		return true
-	}
-
+	x.Send(data.ClientId, messageType, x.ToBytes(data.Data))
 	return true
 }
 
 func (x *WebsocketManager) eventSendToUidHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
-	x.Log("[eventSendToUidHandler] %s", clientId)
-
-	var clients []string
-	switch data.Data.(type) {
-	case string:
-		clients = x.Conn.GetUidClientId(data.Data.(string))
-	default:
-		return false
-	}
-	var transferBuffer = x.ToBytes(data)
-	for _, tmpClientId := range clients {
-		x.Send(tmpClientId, messageType, transferBuffer)
-	}
+	//x.Log("[eventSendToUidHandler] %s", clientId)
+	//
+	//var clients []string
+	//switch data.Data.(type) {
+	//case string:
+	//	clients = x.Conn.GetUidClientId(data.Data.(string))
+	//default:
+	//	return false
+	//}
+	//var transferBuffer = x.ToBytes(data.Data)
+	//for _, tmpClientId := range clients {
+	//	x.Send(tmpClientId, messageType, transferBuffer)
+	//}
+	//return true
 	return true
 }
 
@@ -162,7 +158,7 @@ func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocke
 	if len(clients) == 0 {
 		return true
 	}
-	var transferBuffer = x.ToBytes(data)
+	var transferBuffer = x.ToBytes(data.Data)
 	for _, tmpClientId := range clients {
 		if clientId == tmpClientId {
 			continue
@@ -174,8 +170,10 @@ func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocke
 
 func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventBroadcastHandler] %s", clientId)
+
+	var transferBuffer = x.ToBytes(data.Data)
 	for tmpClientId, _ := range x.Conn.Conn {
-		x.Send(tmpClientId, messageType, x.ToBytes(data))
+		x.Send(tmpClientId, messageType, transferBuffer)
 	}
 	return true
 }
