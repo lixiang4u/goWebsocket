@@ -112,7 +112,7 @@ func (x *WebsocketManager) eventBindUidHandler(clientId string, ws *websocket.Co
 	if len(tmpUid) <= 0 {
 		return false
 	}
-	x.Conn.SetUid(clientId, tmpUid)
+	x.Conn.BindUid(clientId, tmpUid)
 
 	return true
 }
@@ -248,3 +248,127 @@ func (x *WebsocketManager) SendToGroup(groupName string, messageType int, data [
 	}
 	return true
 }
+
+func (x *WebsocketManager) SendToUid(uid string, messageType int, data []byte) bool {
+	for _, clientId := range x.Conn.GetUidClientId(uid) {
+		x.Send(clientId, messageType, data)
+	}
+	return true
+}
+
+func (x *WebsocketManager) SendToClient(clientId string, messageType int, data []byte) bool {
+	return x.Send(clientId, messageType, data)
+}
+
+func (x *WebsocketManager) SendToAll(messageType int, data []byte) bool {
+	for tmpClientId, _ := range x.Conn.Conn {
+		x.Send(tmpClientId, messageType, data)
+	}
+	return true
+}
+
+func (x *WebsocketManager) JoinGroup(clientId, groupName string) {
+	x.Conn.JoinGroup(clientId, groupName)
+}
+
+func (x *WebsocketManager) LeaveGroup(clientId, groupName string) {
+	x.Conn.LeaveGroup(clientId, groupName)
+}
+
+func (x *WebsocketManager) Ungroup() {}
+
+func (x *WebsocketManager) BindUid(clientId, uid string) {
+	x.Conn.BindUid(clientId, uid)
+}
+
+func (x *WebsocketManager) UnbindUid(clientId, uid string) {
+	x.Conn.UnbindUid(clientId, uid)
+}
+
+func (x *WebsocketManager) IsUidOnline(uid string) bool {
+	if len(x.Conn.Uid[uid]) > 0 {
+		return true
+	}
+	return false
+}
+
+//	func (x *WebsocketManager) GetAllGroupIdList() []string {
+//		var groups = make([]string, 0)
+//		for tmpGroupName, _ := range x.Conn.Group {
+//			groups = append(groups, tmpGroupName)
+//		}
+//		return groups
+//	}
+
+func (x *WebsocketManager) GetAllGroupList() []string {
+	var groups = make([]string, 0)
+	for tmpGroupName, _ := range x.Conn.Group {
+		groups = append(groups, tmpGroupName)
+	}
+	return groups
+}
+
+func (x *WebsocketManager) GetAllUidList() []string {
+	var userIds = make([]string, 0)
+	for tmpUid, _ := range x.Conn.Uid {
+		userIds = append(userIds, tmpUid)
+	}
+	return userIds
+}
+
+// func (x *WebsocketManager) GetAllGroupUidList()       {}
+// func (x *WebsocketManager) GetAllGroupClientIdList()  {}
+
+func (x *WebsocketManager) GetAllClientIdList() []string {
+	var clientIds = make([]string, 0)
+	for tmpClientId, _ := range x.Conn.Conn {
+		clientIds = append(clientIds, tmpClientId)
+	}
+	return clientIds
+}
+
+func (x *WebsocketManager) GetAllClientCount() int {
+	return len(x.Conn.Conn)
+}
+
+//	func (x *WebsocketManager) GetAllClientIdCount() int {
+//		return len(x.Conn.Conn)
+//	}
+
+func (x *WebsocketManager) GetUidByClientId(clientId string) string {
+	return x.Conn.Conn[clientId].Uid
+}
+
+// func (x *WebsocketManager) GetAllClientInfo()         {}
+// func (x *WebsocketManager) GetAllGroupClientIdCount() {}
+// func (x *WebsocketManager) GetAllGroupUidCount()     {}
+
+func (x *WebsocketManager) GetAllUidCount() int {
+	return len(x.Conn.Uid)
+}
+
+func (x *WebsocketManager) GetClientCountByGroup(groupName string) int {
+	return len(x.Conn.Group[groupName])
+}
+
+func (x *WebsocketManager) GetClientIdByUid(uid string) []string {
+	var clientIds = make([]string, 0)
+	for tmpClientId := range x.Conn.Uid[uid] {
+		clientIds = append(clientIds, tmpClientId)
+	}
+	return clientIds
+}
+
+//func (x *WebsocketManager) GetClientIdCountByGroup() {}
+
+func (x *WebsocketManager) GetClientIdListByGroup(groupName string) []string {
+	var clientIds = make([]string, 0)
+	for tmpClientId := range x.Conn.Group[groupName] {
+		clientIds = append(clientIds, tmpClientId)
+	}
+	return clientIds
+}
+
+//func (x *WebsocketManager) GetClientInfoByGroup() {}
+//func (x *WebsocketManager) GetUidCountByGroup()   {}
+//func (x *WebsocketManager) GetUidListByGroup()    {}

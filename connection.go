@@ -42,7 +42,7 @@ func (x *ConnectionMutex) Remove(clientId string) {
 	delete(x.Conn, clientId)
 }
 
-func (x *ConnectionMutex) SetUid(clientId, uid string) {
+func (x *ConnectionMutex) BindUid(clientId, uid string) {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
@@ -57,6 +57,14 @@ func (x *ConnectionMutex) SetUid(clientId, uid string) {
 	var tmp = x.Conn[clientId]
 	tmp.Uid = uid
 	x.Conn[clientId] = tmp
+}
+
+func (x *ConnectionMutex) UnbindUid(clientId, uid string) {
+	x.mutex.Lock()
+	defer x.mutex.Unlock()
+
+	x.Conn[clientId].Uid = ""
+	delete(x.Uid, uid)
 }
 
 func (x *ConnectionMutex) GetUidClientId(uid string) []string {
