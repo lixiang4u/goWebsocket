@@ -267,22 +267,22 @@ func (x *WebsocketManager) SendToAll(messageType int, data []byte) bool {
 	return true
 }
 
-func (x *WebsocketManager) JoinGroup(clientId, groupName string) {
-	x.Conn.JoinGroup(clientId, groupName)
+func (x *WebsocketManager) JoinGroup(clientId, groupName string) bool {
+	return x.Conn.JoinGroup(clientId, groupName)
 }
 
-func (x *WebsocketManager) LeaveGroup(clientId, groupName string) {
-	x.Conn.LeaveGroup(clientId, groupName)
+func (x *WebsocketManager) LeaveGroup(clientId, groupName string) bool {
+	return x.Conn.LeaveGroup(clientId, groupName)
 }
 
 func (x *WebsocketManager) Ungroup() {}
 
-func (x *WebsocketManager) BindUid(clientId, uid string) {
-	x.Conn.BindUid(clientId, uid)
+func (x *WebsocketManager) BindUid(clientId, uid string) bool {
+	return x.Conn.BindUid(clientId, uid)
 }
 
-func (x *WebsocketManager) UnbindUid(clientId, uid string) {
-	x.Conn.UnbindUid(clientId, uid)
+func (x *WebsocketManager) UnbindUid(clientId, uid string) bool {
+	return x.Conn.UnbindUid(clientId, uid)
 }
 
 func (x *WebsocketManager) IsUidOnline(uid string) bool {
@@ -372,3 +372,47 @@ func (x *WebsocketManager) GetClientIdListByGroup(groupName string) []string {
 //func (x *WebsocketManager) GetClientInfoByGroup() {}
 //func (x *WebsocketManager) GetUidCountByGroup()   {}
 //func (x *WebsocketManager) GetUidListByGroup()    {}
+
+type Type1 struct {
+	Uid   string
+	Group []string
+}
+
+func (x *WebsocketManager) GetAllConnMap() map[string]Type1 {
+	var resp = make(map[string]Type1)
+	for tmpClientId, tmpContext := range x.Conn.Conn {
+		var tmpGroupList = make([]string, 0)
+		for tmpGroup, _ := range tmpContext.Group {
+			tmpGroupList = append(tmpGroupList, tmpGroup)
+		}
+		resp[tmpClientId] = Type1{
+			Uid:   tmpContext.Uid,
+			Group: tmpGroupList,
+		}
+	}
+	return resp
+}
+
+func (x *WebsocketManager) GetAllUidMap() map[string][]string {
+	var resp = make(map[string][]string)
+	for tmpUid, tmpClientMap := range x.Conn.Uid {
+		var tmpClientIds = make([]string, 0)
+		for tmpClientId, _ := range tmpClientMap {
+			tmpClientIds = append(tmpClientIds, tmpClientId)
+		}
+		resp[tmpUid] = tmpClientIds
+	}
+	return resp
+}
+
+func (x *WebsocketManager) GetAllGroupMap() map[string][]string {
+	var resp = make(map[string][]string)
+	for tmpGroup, tmpClientMap := range x.Conn.Group {
+		var tmpClientIds = make([]string, 0)
+		for tmpClientId, _ := range tmpClientMap {
+			tmpClientIds = append(tmpClientIds, tmpClientId)
+		}
+		resp[tmpGroup] = tmpClientIds
+	}
+	return resp
+}

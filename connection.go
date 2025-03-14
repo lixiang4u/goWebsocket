@@ -42,9 +42,12 @@ func (x *ConnectionMutex) Remove(clientId string) {
 	delete(x.Conn, clientId)
 }
 
-func (x *ConnectionMutex) BindUid(clientId, uid string) {
+func (x *ConnectionMutex) BindUid(clientId, uid string) bool {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
+	if x.Conn[clientId] == nil {
+		return false
+	}
 
 	var prevUid = x.Conn[clientId].Uid
 	delete(x.Uid[prevUid], clientId)
@@ -57,14 +60,22 @@ func (x *ConnectionMutex) BindUid(clientId, uid string) {
 	var tmp = x.Conn[clientId]
 	tmp.Uid = uid
 	x.Conn[clientId] = tmp
+	return true
 }
 
-func (x *ConnectionMutex) UnbindUid(clientId, uid string) {
+func (x *ConnectionMutex) UnbindUid(clientId, uid string) bool {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
-	x.Conn[clientId].Uid = ""
+	if x.Conn[clientId] == nil {
+		return false
+	}
+	if x.Conn[clientId].Uid == uid {
+		x.Conn[clientId].Uid = ""
+	}
 	delete(x.Uid, uid)
+
+	return true
 }
 
 func (x *ConnectionMutex) GetUidClientId(uid string) []string {
@@ -79,10 +90,13 @@ func (x *ConnectionMutex) GetUidClientId(uid string) []string {
 	return clientIds
 }
 
-func (x *ConnectionMutex) JoinGroup(clientId, groupName string) {
+func (x *ConnectionMutex) JoinGroup(clientId, groupName string) bool {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
+	if x.Conn[clientId] == nil {
+		return false
+	}
 	var tmpConn = x.Conn[clientId]
 	if tmpConn.Group == nil {
 		tmpConn.Group = make(map[string]bool)
@@ -96,14 +110,22 @@ func (x *ConnectionMutex) JoinGroup(clientId, groupName string) {
 	}
 	tmpGroup[clientId] = true
 	x.Group[groupName] = tmpGroup
+
+	return true
 }
 
-func (x *ConnectionMutex) LeaveGroup(clientId, groupName string) {
+func (x *ConnectionMutex) LeaveGroup(clientId, groupName string) bool {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
+	if x.Conn[clientId] == nil {
+		return false
+	}
+
 	delete(x.Conn[clientId].Group, groupName)
 	delete(x.Group[groupName], clientId)
+
+	return true
 }
 
 func (x *ConnectionMutex) ListGroup() []string {
