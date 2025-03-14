@@ -13,16 +13,16 @@ go run _examples/main.go
 
 ### 导入包
 ```code
-go get github.com/lixiang4u/go-websocket
+go get github.com/lixiang4u/goWebsocket
 ```
 
 ### 实例化对象
 ```code
 import (
-	go_websocket "github.com/lixiang4u/go-websocket"
+	"github.com/lixiang4u/goWebsocket"
 )
 
-var ws = go_websocket.NewWebsocketManager()
+var ws = goWebsocket.NewWebsocketManager()
 ```
 
 ### 注册响应事件
@@ -57,8 +57,22 @@ type EventProtocol struct {
 ```
 
 ### 运行
+http
 ```code
 ws.Handler(w http.ResponseWriter, r *http.Request, responseHeader http.Header)
+```
+
+gofiber v3
+```code
+// import "github.com/gofiber/fiber/v3"
+// import "github.com/gofiber/fiber/v3/middleware/adaptor"
+// import "github.com/lixiang4u/goWebsocket"
+
+var socket = goWebsocket.NewWebsocketManager()
+app := fiber.New()
+app.Get("/websocket", adaptor.HTTPHandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+    socket.Handler(writer, request, nil)
+}))
 ```
 
 ### 广播聊天截图
