@@ -62,7 +62,7 @@ func (x *WebsocketManager) eventStatHandler(clientId string, ws *websocket.Conn,
 		clientMap[tmpClientId] = make(map[string]interface{})
 		clientMap[tmpClientId]["Uid"] = tmpCtx.Uid
 		clientMap[tmpClientId]["Group"] = tmpCtx.Group
-		clientMap[tmpClientId]["Conn"] = tmpCtx.Conn.RemoteAddr().String()
+		clientMap[tmpClientId]["Conn"] = tmpCtx.Socket.RemoteAddr().String()
 	}
 
 	var userMap = make(map[string][]string)

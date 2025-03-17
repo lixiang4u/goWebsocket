@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-type ConnectionContext struct {
-	Conn  *websocket.Conn
-	Group map[string]bool
-	Uid   string
+type ConnectionCtx struct {
+	Socket *websocket.Conn
+	Group  map[string]bool
+	Uid    string
 }
 
 type ConnectionMutex struct {
-	Conn  map[string]ConnectionContext // [ClientId => CONNECTION_DATA]
-	Uid   map[string]map[string]bool   // [Uid => [ClientId => bool]]
-	Group map[string]map[string]bool   // [GroupName => [ClientId => bool]]
+	Conn  map[string]ConnectionCtx   // [ClientId => CONNECTION_DATA]
+	Uid   map[string]map[string]bool // [Uid => [ClientId => bool]]
+	Group map[string]map[string]bool // [GroupName => [ClientId => bool]]
 	mutex sync.RWMutex
 }
 
@@ -23,10 +23,10 @@ func (x *ConnectionMutex) Store(clientId string, ws *websocket.Conn) {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 	if _, ok := x.Conn[clientId]; !ok {
-		x.Conn[clientId] = ConnectionContext{
-			Conn:  ws,
-			Group: make(map[string]bool),
-			Uid:   "",
+		x.Conn[clientId] = ConnectionCtx{
+			Socket: ws,
+			Group:  make(map[string]bool),
+			Uid:    "",
 		}
 	}
 }
@@ -187,10 +187,10 @@ func (x *ConnectionMutex) LoadConn(clientId string) *websocket.Conn {
 	if _, ok := x.Conn[clientId]; !ok {
 		return nil
 	}
-	return x.Conn[clientId].Conn
+	return x.Conn[clientId].Socket
 }
 
-func (x *ConnectionMutex) LoadConnContext(clientId string) ConnectionContext {
+func (x *ConnectionMutex) LoadConnContext(clientId string) ConnectionCtx {
 	x.mutex.RLock()
 	defer x.mutex.RUnlock()
 	return x.Conn[clientId]

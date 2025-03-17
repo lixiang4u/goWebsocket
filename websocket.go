@@ -54,7 +54,7 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 		x.Config.Debug = debug[0]
 	}
 	x.Conn = ConnectionMutex{
-		Conn:  make(map[string]ConnectionContext),
+		Conn:  make(map[string]ConnectionCtx),
 		Uid:   make(map[string]map[string]bool),
 		Group: make(map[string]map[string]bool),
 		mutex: sync.RWMutex{},
