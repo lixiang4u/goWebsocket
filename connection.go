@@ -12,69 +12,82 @@ type ConnectionContext struct {
 }
 
 type ConnectionMutex struct {
-	Conn  map[string]*ConnectionContext // [ClientId => CONNECTION_DATA]
-	Uid   map[string]map[string]bool    // [Uid => [ClientId => bool]]
-	Group map[string]map[string]bool    // [GroupName => [ClientId => bool]]
+	Conn  map[string]ConnectionContext // [ClientId => CONNECTION_DATA]
+	Uid   map[string]map[string]bool   // [Uid => [ClientId => bool]]
+	Group map[string]map[string]bool   // [GroupName => [ClientId => bool]]
 	mutex sync.RWMutex
 }
 
+// Store 连接时添加客户端信息
 func (x *ConnectionMutex) Store(clientId string, ws *websocket.Conn) {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
-
-	var tmp = x.Conn[clientId]
-	if tmp == nil {
-		tmp = new(ConnectionContext)
+	if _, ok := x.Conn[clientId]; !ok {
+		x.Conn[clientId] = ConnectionContext{
+			Conn:  ws,
+			Group: make(map[string]bool),
+			Uid:   "",
+		}
 	}
-	tmp.Conn = ws
-	x.Conn[clientId] = tmp
 }
 
+// Remove 断开连接时删除客户端信息
 func (x *ConnectionMutex) Remove(clientId string) {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
-	var tmp = x.Conn[clientId]
-	delete(x.Uid[tmp.Uid], clientId)
-	for g, _ := range tmp.Group {
-		delete(x.Group[g], clientId)
+	if v, ok := x.Conn[clientId]; ok {
+		delete(x.Conn, clientId)
+		delete(x.Uid, v.Uid)
+		for tmpGroup, _ := range v.Group {
+			if x.Group[tmpGroup] != nil {
+				delete(x.Group[tmpGroup], clientId)
+			}
+		}
 	}
-	delete(x.Conn, clientId)
 }
 
+// BindUid 绑定用户ID
 func (x *ConnectionMutex) BindUid(clientId, uid string) bool {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
-	if x.Conn[clientId] == nil {
+
+	v, ok := x.Conn[clientId]
+	if !ok {
 		return false
 	}
+	// 解绑当前连接之前的Uid
+	if x.Uid[uid] != nil {
+		delete(x.Uid[uid], clientId)
+	}
 
-	var prevUid = x.Conn[clientId].Uid
-	delete(x.Uid[prevUid], clientId)
+	// 绑定新Uid到当前连接
+	v.Uid = uid
+	x.Conn[clientId] = v
 
 	if x.Uid[uid] == nil {
 		x.Uid[uid] = make(map[string]bool)
 	}
 	x.Uid[uid][clientId] = true
 
-	var tmp = x.Conn[clientId]
-	tmp.Uid = uid
-	x.Conn[clientId] = tmp
 	return true
 }
 
+// UnbindUid 解绑指定连接的Uid
 func (x *ConnectionMutex) UnbindUid(clientId, uid string) bool {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
-	if x.Conn[clientId] == nil {
+	v, ok := x.Conn[clientId]
+	if !ok {
 		return false
 	}
-	if x.Conn[clientId].Uid == uid {
-		x.Conn[clientId].Uid = ""
-	}
-	delete(x.Uid, uid)
+	v.Uid = ""
+	x.Conn[clientId] = v
 
+	if x.Uid[uid] != nil {
+		delete(x.Uid[uid], clientId)
+	}
 	return true
 }
 
@@ -94,22 +107,23 @@ func (x *ConnectionMutex) JoinGroup(clientId, groupName string) bool {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
-	if x.Conn[clientId] == nil {
+	v, ok := x.Conn[clientId]
+	if !ok {
 		return false
 	}
-	var tmpConn = x.Conn[clientId]
-	if tmpConn.Group == nil {
-		tmpConn.Group = make(map[string]bool)
-	}
-	tmpConn.Group[groupName] = true
-	x.Conn[clientId] = tmpConn
 
-	var tmpGroup = x.Group[groupName]
-	if tmpGroup == nil {
-		tmpGroup = make(map[string]bool)
+	if v.Group == nil {
+		v.Group = make(map[string]bool)
 	}
-	tmpGroup[clientId] = true
-	x.Group[groupName] = tmpGroup
+	v.Group[groupName] = true
+	x.Conn[clientId] = v
+
+	v2, ok := x.Group[groupName]
+	if !ok {
+		v2 = make(map[string]bool)
+	}
+	v2[clientId] = true
+	x.Group[groupName] = v2
 
 	return true
 }
@@ -118,12 +132,16 @@ func (x *ConnectionMutex) LeaveGroup(clientId, groupName string) bool {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
-	if x.Conn[clientId] == nil {
+	if _, ok := x.Conn[clientId]; !ok {
 		return false
 	}
 
-	delete(x.Conn[clientId].Group, groupName)
-	delete(x.Group[groupName], clientId)
+	if x.Conn[clientId].Group != nil {
+		delete(x.Conn[clientId].Group, groupName)
+	}
+	if x.Group[groupName] != nil {
+		delete(x.Group[groupName], clientId)
+	}
 
 	return true
 }
@@ -166,13 +184,13 @@ func (x *ConnectionMutex) GetGroupClientIds(groupName string) []string {
 func (x *ConnectionMutex) LoadConn(clientId string) *websocket.Conn {
 	x.mutex.RLock()
 	defer x.mutex.RUnlock()
-	if x.Conn[clientId] == nil {
+	if _, ok := x.Conn[clientId]; !ok {
 		return nil
 	}
 	return x.Conn[clientId].Conn
 }
 
-func (x *ConnectionMutex) LoadConnContext(clientId string) *ConnectionContext {
+func (x *ConnectionMutex) LoadConnContext(clientId string) ConnectionContext {
 	x.mutex.RLock()
 	defer x.mutex.RUnlock()
 	return x.Conn[clientId]

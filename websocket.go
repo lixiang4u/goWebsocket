@@ -42,7 +42,7 @@ type H map[string]interface{}
 type WebsocketManager struct {
 	eventHandlers     map[string]EventHandler
 	userEventHandlers map[string]EventHandler
-	Conn              *ConnectionMutex
+	Conn              ConnectionMutex
 	Config            struct {
 		Debug bool
 	}
@@ -53,8 +53,8 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	if len(debug) > 0 {
 		x.Config.Debug = debug[0]
 	}
-	x.Conn = &ConnectionMutex{
-		Conn:  make(map[string]*ConnectionContext),
+	x.Conn = ConnectionMutex{
+		Conn:  make(map[string]ConnectionContext),
 		Uid:   make(map[string]map[string]bool),
 		Group: make(map[string]map[string]bool),
 		mutex: sync.RWMutex{},
