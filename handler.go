@@ -71,8 +71,8 @@ func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocke
 	return true
 }
 
-func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
-	x.send <- MessageCtx{Id: clientId, Msg: data}
+func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data MessageProtocol) bool {
+	x.send <- data
 	return true
 }
 

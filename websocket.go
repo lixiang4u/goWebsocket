@@ -31,7 +31,7 @@ var upgrader = websocket.Upgrader{
 
 // 阻止部分敏感操作，应由后台验证权限后替代操作
 var blockSensitiveEvents = []string{
-	Event(EventBroadcast).String(),
+	//Event(EventBroadcast).String(),
 	Event(EventBindUid).String(),
 	Event(EventSendToUid).String(),
 	Event(EventListGroup).String(),
@@ -59,7 +59,7 @@ type WebsocketManager struct {
 	broadcast  chan MessageCtx
 	register   chan ClientCtx
 	unregister chan ClientCtx
-	send       chan MessageCtx
+	send       chan MessageProtocol
 }
 
 func NewWebsocketManager(debug ...bool) *WebsocketManager {
@@ -71,7 +71,7 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	x.broadcast = make(chan MessageCtx)
 	x.register = make(chan ClientCtx)
 	x.unregister = make(chan ClientCtx)
-	x.send = make(chan MessageCtx)
+	x.send = make(chan MessageProtocol)
 
 	go x.registerChannelEvent()
 	x.registerEvents()
@@ -82,8 +82,9 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 func (x *WebsocketManager) registerChannelEvent() {
 	for {
 		select {
-		case <-x.send:
-			log.Println("[发消息]")
+		case data := <-x.send:
+			log.Println(fmt.Sprintf("[消息] %s => %s", data.FromId, data.ToId))
+			x.Send(data.ToId, websocket.TextMessage, ToBuff(data))
 		case ctx := <-x.register:
 			log.Println("[注册]")
 			x.registerHandler(ctx)
@@ -204,7 +205,7 @@ func (x *WebsocketManager) registerEvents() {
 	x.eventHandlers[Event(EventSendToClient).String()] = x.eventSendToClientHandler
 	x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
 	x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
-	x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
+	//x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
 	x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
 	x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
 	x.eventHandlers[Event(EventListGroup).String()] = x.eventListGroupHandler

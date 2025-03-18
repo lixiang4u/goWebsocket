@@ -20,3 +20,8 @@ func ToJson(v interface{}) string {
 	//log.Println("[JSON]", string(buf))
 	return string(buf)
 }
+
+func ToBuff(v interface{}) []byte {
+	buff, _ := json.Marshal(v)
+	return buff
+}
