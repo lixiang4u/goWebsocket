@@ -54,8 +54,8 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 		x.Config.Debug = debug[0]
 	}
 	x.data = DataHub{
-		Uid:   make(map[string]map[string]bool),
-		Group: make(map[string]map[string]bool),
+		Uid:   sync.Map{},
+		Group: sync.Map{},
 		Conn:  sync.Map{},
 	}
 	x.registerEvents()

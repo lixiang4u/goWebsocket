@@ -25,12 +25,12 @@ func main() {
 	}))
 
 	app.Get("/debug", func(ctx fiber.Ctx) error {
-		log.Println("[time]", time.Now().String())
 
 		var clientId = ctx.Query("client_id")
 		var bindUid = ctx.Query("bind_uid")
 		var unbindUid = ctx.Query("unbind_uid")
 		if len(bindUid) > 0 {
+			log.Println("[BindUid]", clientId, "=>", bindUid)
 			appSocket.BindUid(clientId, bindUid)
 		}
 		if len(unbindUid) > 0 {
@@ -50,11 +50,11 @@ func main() {
 		//	}
 		//}
 
-		var tmpMap = make(map[string]bool)
-
 		var rsp = fiber.Map{
-			"time": time.Now().Unix(),
-			"Conn": tmpMap,
+			"time":      time.Now().Unix(),
+			"ListConn":  appSocket.ListConn(),
+			"ListGroup": appSocket.ListGroup(),
+			"ListUid":   appSocket.ListUid(),
 			//"Group": appSocket.Conn.Group,
 			//"Uid":   appSocket.Conn.Uid,
 		}

@@ -8,9 +8,9 @@ import (
 type ClientMapEmpty map[string]bool
 
 type ConnectionCtx struct {
-	Socket *websocket.Conn
-	Group  map[string]bool
-	Uid    string
+	Socket *websocket.Conn `json:"socket,omitempty"`
+	Group  map[string]bool `json:"group"`
+	Uid    string          `json:"uid"`
 }
 
 type DataHub struct {
@@ -105,9 +105,9 @@ func (x *DataHub) UnbindUid(clientId, uid string) bool {
 func (x *DataHub) GetUidClientId(uid string) []string {
 
 	var clientIds = make([]string, 0)
-	for clientId, _ := range x.Uid[uid] {
-		clientIds = append(clientIds, clientId)
-	}
+	//for clientId, _ := range x.Uid[uid] {
+	//	clientIds = append(clientIds, clientId)
+	//}
 
 	return clientIds
 }
@@ -151,31 +151,60 @@ func (x *DataHub) LeaveGroup(clientId, groupName string) bool {
 	return true
 }
 
-func (x *DataHub) ListGroup() []string {
-
-	var groups = make([]string, 0)
-	for g, _ := range x.Group {
-		groups = append(groups, g)
-	}
-
+func (x *DataHub) ListGroup() map[string]ClientMapEmpty {
+	var groups = make(map[string]ClientMapEmpty)
+	x.Group.Range(func(key, value any) bool {
+		var tmpKey = key.(string)
+		if groups[tmpKey] == nil {
+			groups[tmpKey] = make(ClientMapEmpty)
+		}
+		for tmpClientId, b := range value.(ClientMapEmpty) {
+			groups[tmpKey][tmpClientId] = b
+		}
+		return true
+	})
 	return groups
 }
 
-func (x *DataHub) ListGroupClientIds(groupName string) []string {
+func (x *DataHub) ListUid() map[string]ClientMapEmpty {
+	var uid = make(map[string]ClientMapEmpty)
+	x.Uid.Range(func(key, value any) bool {
+		var tmpKey = key.(string)
+		if uid[tmpKey] == nil {
+			uid[tmpKey] = make(ClientMapEmpty)
+		}
+		for tmpClientId, b := range value.(ClientMapEmpty) {
+			uid[tmpKey][tmpClientId] = b
+		}
+		return true
+	})
+	return uid
+}
 
-	var clientIds = make([]string, 0)
-	for clientId, _ := range x.Group[groupName] {
-		clientIds = append(clientIds, clientId)
-	}
-	return clientIds
+func (x *DataHub) ListConn() map[string]ConnectionCtx {
+	var conn = make(map[string]ConnectionCtx)
+	x.Conn.Range(func(key, value any) bool {
+		var tmpKey = key.(string)
+		v, ok := conn[tmpKey]
+		if !ok {
+			conn[tmpKey] = ConnectionCtx{}
+		}
+		v.Uid = value.(ConnectionCtx).Uid
+		for tmpClientId, b := range value.(ConnectionCtx).Group {
+			v.Group[tmpClientId] = b
+		}
+		conn[tmpKey] = v
+		return true
+	})
+	return conn
 }
 
 func (x *DataHub) GetGroupClientIds(groupName string) []string {
 
 	var clientIds = make([]string, 0)
-	for clientId, _ := range x.Group[groupName] {
-		clientIds = append(clientIds, clientId)
-	}
+	//for clientId, _ := range x.Group[groupName] {
+	//	clientIds = append(clientIds, clientId)
+	//}
 
 	return clientIds
 }
