@@ -2,6 +2,7 @@ package goWebsocket
 
 import (
 	"github.com/gorilla/websocket"
+	"time"
 )
 
 func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
@@ -18,6 +19,20 @@ func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
 	if _, ok := x.clients.Load(ctx.Id); ok {
 		x.clients.Delete(ctx.Id)
 	}
+}
+
+// Send 对外接口，用于发送ws消息到指定clientId
+func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) bool {
+	if v, ok := x.clients.Load(clientId); ok {
+		if err := v.(ClientCtx).Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+			return false
+		}
+		if err := v.(ClientCtx).Socket.WriteMessage(messageType, data); err != nil {
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
@@ -57,6 +72,7 @@ func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocke
 }
 
 func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
+	x.send <- MessageCtx{Id: clientId, Msg: data}
 	return true
 }
 
@@ -75,21 +91,6 @@ func (x *WebsocketManager) eventListGroupHandler(clientId string, ws *websocket.
 func (x *WebsocketManager) eventListGroupClientHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	return true
 
-}
-
-// Send 对外接口，用于发送ws消息到指定clientId
-func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) bool {
-	//var conn = x.data.LoadConn(clientId)
-	//if conn == nil {
-	//	return false
-	//}
-	//if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-	//	return false
-	//}
-	//if err := conn.WriteMessage(messageType, data); err != nil {
-	//	return false
-	//}
-	return true
 }
 
 // SendToGroup 发送消息到组
