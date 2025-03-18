@@ -84,13 +84,17 @@ func (x *WebsocketManager) registerChannelEvent() {
 		select {
 		case <-x.send:
 			log.Println("[发消息]")
-		case <-x.register:
+		case ctx := <-x.register:
 			log.Println("[注册]")
-		case <-x.unregister:
+			x.registerHandler(ctx)
+		case ctx := <-x.unregister:
 			log.Println("[注销]")
+			x.unregisterHandler(ctx)
 		case <-x.broadcast:
 			log.Println("[广播]")
 		}
+
+		///
 	}
 }
 
@@ -106,11 +110,8 @@ func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, respo
 	go x.writeMessage(clientId, ws)
 	go x.readMessage(clientId, ws)
 
-	x.eventConnectHandler(clientId, ws, 0, EventProtocol{
-		ClientId: clientId,
-		Event:    Event(EventConnect).String(),
-		Data:     nil,
-	})
+	x.register <- ClientCtx{Id: clientId, Socket: ws}
+
 }
 
 // 接受请求并转给handler处理
@@ -125,11 +126,8 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 	for {
 		messageType, data, err := ws.ReadMessage()
 		if err != nil {
-			x.eventCloseHandler(clientId, ws, messageType, EventProtocol{
-				ClientId: clientId,
-				Event:    Event(EventClose).String(),
-				Data:     nil,
-			})
+			// 连接故障
+			x.unregister <- ClientCtx{Id: clientId, Socket: ws}
 			break
 		}
 		x.Log("[WebsocketRequest] %s", string(data))
@@ -165,10 +163,10 @@ EXIT:
 		select {
 		case <-ticker.C:
 			// 检测是否已经在 ReadMessage 时断开，如果是需要跳出 WriteMessage 循环
-			//if x.data.LoadConn(clientId) == nil {
-			//	//x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
-			//	break EXIT
-			//}
+			if _, ok := x.clients.Load(clientId); !ok {
+				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
+				break EXIT
+			}
 			if err := ws.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
 				break EXIT

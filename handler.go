@@ -4,6 +4,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
+	if _, ok := x.clients.Load(ctx.Id); !ok {
+		x.clients.Store(ctx.Id, ConnectionCtx{
+			Socket: ctx.Socket,
+			Group:  make(map[string]bool),
+			Uid:    "",
+		})
+	}
+}
+
+func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
+	if _, ok := x.clients.Load(ctx.Id); ok {
+		x.clients.Delete(ctx.Id)
+	}
+}
+
 func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	return true
 }
@@ -83,4 +99,54 @@ func (x *WebsocketManager) SendToGroup(groupName string, messageType int, data [
 
 func (x *WebsocketManager) SendToUid(uid string, messageType int, data []byte) bool {
 	return true
+}
+
+// =====================================================================================
+
+func (x *WebsocketManager) ListGroup() map[string]ClientMapEmpty {
+	var groups = make(map[string]ClientMapEmpty)
+	x.groups.Range(func(key, value any) bool {
+		var tmpKey = key.(string)
+		if groups[tmpKey] == nil {
+			groups[tmpKey] = make(ClientMapEmpty)
+		}
+		for tmpClientId, b := range value.(ClientMapEmpty) {
+			groups[tmpKey][tmpClientId] = b
+		}
+		return true
+	})
+	return groups
+}
+
+func (x *WebsocketManager) ListUid() map[string]ClientMapEmpty {
+	var uid = make(map[string]ClientMapEmpty)
+	x.users.Range(func(key, value any) bool {
+		var tmpKey = key.(string)
+		if uid[tmpKey] == nil {
+			uid[tmpKey] = make(ClientMapEmpty)
+		}
+		for tmpClientId, b := range value.(ClientMapEmpty) {
+			uid[tmpKey][tmpClientId] = b
+		}
+		return true
+	})
+	return uid
+}
+
+func (x *WebsocketManager) ListConn() map[string]ConnectionCtx {
+	var conn = make(map[string]ConnectionCtx)
+	x.clients.Range(func(key, value any) bool {
+		var tmpKey = key.(string)
+		v, ok := conn[tmpKey]
+		if !ok {
+			conn[tmpKey] = ConnectionCtx{}
+		}
+		v.Uid = value.(ConnectionCtx).Uid
+		for tmpClientId, b := range value.(ConnectionCtx).Group {
+			v.Group[tmpClientId] = b
+		}
+		conn[tmpKey] = v
+		return true
+	})
+	return conn
 }
