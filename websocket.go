@@ -73,30 +73,26 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	x.unregister = make(chan ClientCtx)
 	x.send = make(chan MessageCtx)
 
-	go func() {
-		for {
-			select {
-			case <-x.send:
-				log.Println("[发消息]")
-			case <-x.register:
-				log.Println("[注册]")
-			case <-x.unregister:
-				log.Println("[注销]")
-			case <-x.broadcast:
-				log.Println("[广播]")
-			}
-		}
-	}()
-
+	go x.registerChannelEvent()
 	x.registerEvents()
 
 	return x
 }
 
-// iris版本的启动
-//func (x *WebsocketManager) RunWithIris(ctx iris.Context) {
-//	c.Run(ctx.ResponseWriter(), ctx.Request(), nil)
-//}
+func (x *WebsocketManager) registerChannelEvent() {
+	for {
+		select {
+		case <-x.send:
+			log.Println("[发消息]")
+		case <-x.register:
+			log.Println("[注册]")
+		case <-x.unregister:
+			log.Println("[注销]")
+		case <-x.broadcast:
+			log.Println("[广播]")
+		}
+	}
+}
 
 // Handler 开始处理websocket请求
 func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, responseHeader http.Header) {
