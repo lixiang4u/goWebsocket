@@ -46,12 +46,22 @@ func (x *WebsocketManager) BindUid(clientId, uid string) bool {
 	tmpConn.Uid = uid
 	x.clients.Store(clientId, tmpConn)
 
+	// 删除旧Uid
 	var tmpU = ClientMapEmpty{}
 	u, ok := x.users.Load(prevUid)
 	if ok {
 		tmpU = u.(ClientMapEmpty)
 	}
 	delete(tmpU, clientId)
+	x.users.Store(prevUid, tmpU)
+
+	// 绑定新Uid
+	tmpU = ClientMapEmpty{}
+	u, ok = x.users.Load(uid)
+	if ok {
+		tmpU = u.(ClientMapEmpty)
+	}
+	tmpU[clientId] = true
 	x.users.Store(prevUid, tmpU)
 
 	return true
