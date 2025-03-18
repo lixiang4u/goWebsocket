@@ -40,12 +40,26 @@ var blockSensitiveEvents = []string{
 type H map[string]interface{}
 
 type WebsocketManager struct {
-	eventHandlers     map[string]EventHandler
-	userEventHandlers map[string]EventHandler
-	data              DataHub
-	Config            struct {
+	Config struct {
 		Debug bool
 	}
+
+	eventHandlers     map[string]EventHandler
+	userEventHandlers map[string]EventHandler
+
+	//clients map[string]ConnectionCtx
+	//groups  map[string]ClientMapEmpty
+	//users   map[string]ClientMapEmpty
+
+	clients sync.Map // [ClientId => ConnectionCtx]
+	users   sync.Map // [Uid => ClientMapEmpty]
+	groups  sync.Map // [GroupName => ClientMapEmpty]
+
+	// events
+	broadcast  chan MessageCtx
+	register   chan ClientCtx
+	unregister chan ClientCtx
+	send       chan MessageCtx
 }
 
 func NewWebsocketManager(debug ...bool) *WebsocketManager {
@@ -53,12 +67,29 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	if len(debug) > 0 {
 		x.Config.Debug = debug[0]
 	}
-	x.data = DataHub{
-		Uid:   sync.Map{},
-		Group: sync.Map{},
-		Conn:  sync.Map{},
-	}
+
+	x.broadcast = make(chan MessageCtx)
+	x.register = make(chan ClientCtx)
+	x.unregister = make(chan ClientCtx)
+	x.send = make(chan MessageCtx)
+
+	go func() {
+		for {
+			select {
+			case <-x.send:
+				log.Println("[发消息]")
+			case <-x.register:
+				log.Println("[注册]")
+			case <-x.unregister:
+				log.Println("[注销]")
+			case <-x.broadcast:
+				log.Println("[广播]")
+			}
+		}
+	}()
+
 	x.registerEvents()
+
 	return x
 }
 
@@ -138,10 +169,10 @@ EXIT:
 		select {
 		case <-ticker.C:
 			// 检测是否已经在 ReadMessage 时断开，如果是需要跳出 WriteMessage 循环
-			if x.data.LoadConn(clientId) == nil {
-				//x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
-				break EXIT
-			}
+			//if x.data.LoadConn(clientId) == nil {
+			//	//x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
+			//	break EXIT
+			//}
 			if err := ws.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
 				break EXIT

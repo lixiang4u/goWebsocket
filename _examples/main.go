@@ -31,7 +31,6 @@ func main() {
 		var unbindUid = ctx.Query("unbind_uid")
 		if len(bindUid) > 0 {
 			log.Println("[BindUid]", clientId, "=>", bindUid)
-			appSocket.BindUid(clientId, bindUid)
 		}
 		if len(unbindUid) > 0 {
 			//appSocket.UnbindUid(clientId, unbindUid)
@@ -51,12 +50,7 @@ func main() {
 		//}
 
 		var rsp = fiber.Map{
-			"time":      time.Now().Unix(),
-			"ListConn":  appSocket.ListConn(),
-			"ListGroup": appSocket.ListGroup(),
-			"ListUid":   appSocket.ListUid(),
-			//"Group": appSocket.Conn.Group,
-			//"Uid":   appSocket.Conn.Uid,
+			"time": time.Now().Unix(),
 		}
 
 		return RespSuccessData(&ctx, rsp)
