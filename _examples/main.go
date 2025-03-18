@@ -18,20 +18,23 @@ func main() {
 	app := fiber.New(fiber.Config{TrustProxy: true})
 
 	app.Get("/index.html", func(ctx fiber.Ctx) error {
-		//var _bindUid = "BU11111111"
-		//appSocket.Store("5a356db8dbd746f3a0a75d24bee3d09f")
-		//appSocket.Store("b0e3b7f1dd044203a82109389f8cade2")
-		//
-		//appSocket.BindUid("5a356db8dbd746f3a0a75d24bee3d09f", _bindUid)
-		//appSocket.BindUid("b0e3b7f1dd044203a82109389f8cade2", _bindUid)
-		//
-		//return ctx.SendString(JsonString(appSocket.Conn))
 		return ctx.SendFile("./_examples/index.html")
 	})
 	app.Get("/websocket", adaptor.HTTPHandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		log.Println("[websocket]", time.Now().String())
 		appSocket.Handler(writer, request, nil)
 	}))
+
+	app.Get("/dd", func(ctx fiber.Ctx) error {
+		var _bindUid = "BU11111111"
+		appSocket.Store("5a356db8dbd746f3a0a75d24bee3d09f", nil)
+		appSocket.Store("b0e3b7f1dd044203a82109389f8cade2", nil)
+
+		appSocket.BindUid("5a356db8dbd746f3a0a75d24bee3d09f", _bindUid)
+		appSocket.BindUid("b0e3b7f1dd044203a82109389f8cade2", _bindUid)
+
+		return ctx.SendString(JsonString(appSocket.Conn.Conn))
+	})
 
 	app.Get("/debug", func(ctx fiber.Ctx) error {
 		log.Println("[time]", time.Now().String())

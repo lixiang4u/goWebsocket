@@ -372,3 +372,10 @@ func (x *WebsocketManager) GetClientIdListByGroup(groupName string) []string {
 //func (x *WebsocketManager) GetClientInfoByGroup() {}
 //func (x *WebsocketManager) GetUidCountByGroup()   {}
 //func (x *WebsocketManager) GetUidListByGroup()    {}
+
+func (x *WebsocketManager) Store(clientId string, ws *websocket.Conn) {
+	x.Conn.Store(clientId, ws)
+}
+func (x *WebsocketManager) Remove(clientId string) {
+	x.Conn.Remove(clientId)
+}
