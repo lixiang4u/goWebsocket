@@ -51,6 +51,16 @@ func main() {
 		log.Println(fmt.Sprintf("%#v", appSocket.Conn.Group))
 		log.Println("[appSocket.Conn.Conn]", JsonString(appSocket.Conn.Conn))
 
+		// 再次检测是否有相同map键
+		var tmpMap = make(map[string]bool)
+		for tmpClientId, _ := range appSocket.Conn.Conn {
+			if _, ok := tmpMap[tmpClientId]; !ok {
+				tmpMap[tmpClientId] = true
+			} else {
+				log.Println("[已经存在Key]", tmpClientId)
+			}
+		}
+
 		var rsp = fiber.Map{
 			"time":  time.Now().Unix(),
 			"Conn":  appSocket.Conn.Conn,
