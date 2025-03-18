@@ -35,6 +35,25 @@ func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) b
 	return false
 }
 
+func (x *WebsocketManager) BindUid(clientId, uid string) bool {
+	v, ok := x.clients.Load(clientId)
+	if !ok {
+		return false
+	}
+	var tmpConn = v.(ConnectionCtx)
+	var prevUid = tmpConn.Uid
+
+	tmpConn.Uid = uid
+	x.clients.Store(clientId, tmpConn)
+
+	if u, ok := x.users.Load(prevUid); ok {
+		delete(u.(ClientMapEmpty), clientId)
+		x.users.Store(prevUid, u)
+	}
+
+	return true
+}
+
 func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	return true
 }
@@ -119,7 +138,7 @@ func (x *WebsocketManager) ListGroup() map[string]ClientMapEmpty {
 	return groups
 }
 
-func (x *WebsocketManager) ListUid() map[string]ClientMapEmpty {
+func (x *WebsocketManager) ListUser() map[string]ClientMapEmpty {
 	var uid = make(map[string]ClientMapEmpty)
 	x.users.Range(func(key, value any) bool {
 		var tmpKey = key.(string)

@@ -24,6 +24,27 @@ func main() {
 		appSocket.Handler(writer, request, nil)
 	}))
 
+	app.Get("/stat", func(ctx fiber.Ctx) error {
+		return ctx.JSON(fiber.Map{
+			"ListConn":  appSocket.ListConn(),
+			"ListUser":  appSocket.ListUser(),
+			"ListGroup": appSocket.ListGroup(),
+		})
+	})
+
+	app.Get("/bind-uid", func(ctx fiber.Ctx) error {
+		var clientId = ctx.Query("client_id")
+		var uid = ctx.Query("uid")
+
+		if len(clientId) > 0 && len(uid) > 0 {
+			appSocket.BindUid(clientId, uid)
+		}
+
+		return ctx.JSON(fiber.Map{
+			"status": "success",
+		})
+	})
+
 	app.Get("/debug", func(ctx fiber.Ctx) error {
 
 		var clientId = ctx.Query("client_id")
