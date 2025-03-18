@@ -30,7 +30,7 @@ func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn,
 func (x *WebsocketManager) eventConnectHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventConnectHandler] %s", clientId)
 
-	x.Conn.Store(clientId, ws)
+	x.data.Store(clientId, ws)
 
 	x.Send(clientId, websocket.TextMessage, x.ToBytes(EventProtocolConnect{
 		ClientId: clientId,
@@ -48,7 +48,7 @@ func (x *WebsocketManager) eventConnectHandler(clientId string, ws *websocket.Co
 func (x *WebsocketManager) eventCloseHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventCloseHandler] %s, %d", clientId, messageType)
 
-	x.Conn.Remove(clientId)
+	x.data.Remove(clientId)
 	// TODO 删除Uid数据，删除Group数据
 
 	return true
@@ -57,41 +57,41 @@ func (x *WebsocketManager) eventCloseHandler(clientId string, ws *websocket.Conn
 func (x *WebsocketManager) eventStatHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventCloseHandler] %s, %d", clientId, messageType)
 
-	var clientMap = make(map[string]map[string]interface{})
-	for tmpClientId, tmpCtx := range x.Conn.Conn {
-		clientMap[tmpClientId] = make(map[string]interface{})
-		clientMap[tmpClientId]["Uid"] = tmpCtx.Uid
-		clientMap[tmpClientId]["Group"] = tmpCtx.Group
-		clientMap[tmpClientId]["Conn"] = tmpCtx.Socket.RemoteAddr().String()
-	}
-
-	var userMap = make(map[string][]string)
-	for tmpUid, m := range x.Conn.Uid {
-		userMap[tmpUid] = make([]string, 0)
-		for tmpClientId, _ := range m {
-			userMap[tmpUid] = append(userMap[tmpUid], tmpClientId)
-		}
-	}
-
-	var groupMap = make(map[string][]string)
-	for tmpGroup, m := range x.Conn.Group {
-		groupMap[tmpGroup] = make([]string, 0)
-		for tmpClientId, _ := range m {
-			groupMap[tmpGroup] = append(groupMap[tmpGroup], tmpClientId)
-		}
-	}
-
-	var respData = EventProtocol{
-		ClientId: clientId,
-		Event:    Event(EventStat).String(),
-		Data: map[string]interface{}{
-			"clientMap": clientMap,
-			"userMap":   userMap,
-			"groupMap":  groupMap,
-		},
-	}
-
-	x.Send(clientId, websocket.TextMessage, x.ToBytes(respData))
+	//var clientMap = make(map[string]map[string]interface{})
+	//for tmpClientId, tmpCtx := range x.data.Conn {
+	//	clientMap[tmpClientId] = make(map[string]interface{})
+	//	clientMap[tmpClientId]["Uid"] = tmpCtx.Uid
+	//	clientMap[tmpClientId]["Group"] = tmpCtx.Group
+	//	clientMap[tmpClientId]["Conn"] = tmpCtx.Socket.RemoteAddr().String()
+	//}
+	//
+	//var userMap = make(map[string][]string)
+	//for tmpUid, m := range x.data.Uid {
+	//	userMap[tmpUid] = make([]string, 0)
+	//	for tmpClientId, _ := range m {
+	//		userMap[tmpUid] = append(userMap[tmpUid], tmpClientId)
+	//	}
+	//}
+	//
+	//var groupMap = make(map[string][]string)
+	//for tmpGroup, m := range x.data.Group {
+	//	groupMap[tmpGroup] = make([]string, 0)
+	//	for tmpClientId, _ := range m {
+	//		groupMap[tmpGroup] = append(groupMap[tmpGroup], tmpClientId)
+	//	}
+	//}
+	//
+	//var respData = EventProtocol{
+	//	ClientId: clientId,
+	//	Event:    Event(EventStat).String(),
+	//	Data: map[string]interface{}{
+	//		"clientMap": clientMap,
+	//		"userMap":   userMap,
+	//		"groupMap":  groupMap,
+	//	},
+	//}
+	//
+	//x.Send(clientId, websocket.TextMessage, x.ToBytes(respData))
 
 	return true
 }
@@ -112,7 +112,7 @@ func (x *WebsocketManager) eventBindUidHandler(clientId string, ws *websocket.Co
 	if len(tmpUid) <= 0 {
 		return false
 	}
-	x.Conn.BindUid(clientId, tmpUid)
+	x.data.BindUid(clientId, tmpUid)
 
 	return true
 }
@@ -135,7 +135,7 @@ func (x *WebsocketManager) eventSendToUidHandler(clientId string, ws *websocket.
 	//var clients []string
 	//switch data.Data.(type) {
 	//case string:
-	//	clients = x.Conn.GetUidClientId(data.Data.(string))
+	//	clients = x.data.GetUidClientId(data.Data.(string))
 	//default:
 	//	return false
 	//}
@@ -154,7 +154,7 @@ func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocke
 		x.Log("[SendToGroup] missing param(group)")
 		return false
 	}
-	var clients = x.Conn.GetGroupClientIds(data.Group)
+	var clients = x.data.GetGroupClientIds(data.Group)
 	if len(clients) == 0 {
 		return true
 	}
@@ -170,11 +170,11 @@ func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocke
 
 func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	x.Log("[eventBroadcastHandler] %s", clientId)
-
-	var transferBuffer = x.ToBytes(data.Data)
-	for tmpClientId, _ := range x.Conn.Conn {
-		x.Send(tmpClientId, messageType, transferBuffer)
-	}
+	//
+	//var transferBuffer = x.ToBytes(data.Data)
+	//for tmpClientId, _ := range x.data.Conn {
+	//	x.Send(tmpClientId, messageType, transferBuffer)
+	//}
 	return true
 }
 
@@ -185,7 +185,7 @@ func (x *WebsocketManager) eventJoinGroupHandler(clientId string, ws *websocket.
 		x.Log("[SendToGroup] missing param(group)")
 		return false
 	}
-	x.Conn.JoinGroup(clientId, data.Group)
+	x.data.JoinGroup(clientId, data.Group)
 	return true
 }
 
@@ -196,7 +196,7 @@ func (x *WebsocketManager) eventLeaveGroupHandler(clientId string, ws *websocket
 		x.Log("[SendToGroup] missing param(group)")
 		return false
 	}
-	x.Conn.LeaveGroup(clientId, data.Group)
+	x.data.LeaveGroup(clientId, data.Group)
 	return true
 }
 
@@ -204,7 +204,7 @@ func (x *WebsocketManager) eventListGroupHandler(clientId string, ws *websocket.
 	x.Log("[eventListGroupHandler] %s", clientId)
 
 	x.Send(clientId, messageType, x.ToBytes(H{
-		"groups": x.Conn.ListGroup(),
+		"groups": x.data.ListGroup(),
 	}))
 
 	return true
@@ -219,7 +219,7 @@ func (x *WebsocketManager) eventListGroupClientHandler(clientId string, ws *webs
 	}
 
 	x.Send(clientId, messageType, x.ToBytes(H{
-		"groups": x.Conn.ListGroupClientIds(data.Group),
+		"groups": x.data.ListGroupClientIds(data.Group),
 	}))
 	return true
 
@@ -227,7 +227,7 @@ func (x *WebsocketManager) eventListGroupClientHandler(clientId string, ws *webs
 
 // Send 对外接口，用于发送ws消息到指定clientId
 func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) bool {
-	var conn = x.Conn.LoadConn(clientId)
+	var conn = x.data.LoadConn(clientId)
 	if conn == nil {
 		return false
 	}
@@ -242,7 +242,7 @@ func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) b
 
 // SendToGroup 发送消息到组
 func (x *WebsocketManager) SendToGroup(groupName string, messageType int, data []byte) bool {
-	var clientIds = x.Conn.ListGroupClientIds(groupName)
+	var clientIds = x.data.ListGroupClientIds(groupName)
 	for _, clientId := range clientIds {
 		x.Send(clientId, messageType, data)
 	}
@@ -250,7 +250,7 @@ func (x *WebsocketManager) SendToGroup(groupName string, messageType int, data [
 }
 
 func (x *WebsocketManager) SendToUid(uid string, messageType int, data []byte) bool {
-	for _, clientId := range x.Conn.GetUidClientId(uid) {
+	for _, clientId := range x.data.GetUidClientId(uid) {
 		x.Send(clientId, messageType, data)
 	}
 	return true
@@ -261,32 +261,32 @@ func (x *WebsocketManager) SendToClient(clientId string, messageType int, data [
 }
 
 func (x *WebsocketManager) SendToAll(messageType int, data []byte) bool {
-	for tmpClientId, _ := range x.Conn.Conn {
-		x.Send(tmpClientId, messageType, data)
-	}
+	//for tmpClientId, _ := range x.data.Conn {
+	//	x.Send(tmpClientId, messageType, data)
+	//}
 	return true
 }
 
 func (x *WebsocketManager) JoinGroup(clientId, groupName string) bool {
-	return x.Conn.JoinGroup(clientId, groupName)
+	return x.data.JoinGroup(clientId, groupName)
 }
 
 func (x *WebsocketManager) LeaveGroup(clientId, groupName string) bool {
-	return x.Conn.LeaveGroup(clientId, groupName)
+	return x.data.LeaveGroup(clientId, groupName)
 }
 
 func (x *WebsocketManager) Ungroup() {}
 
 func (x *WebsocketManager) BindUid(clientId, uid string) bool {
-	return x.Conn.BindUid(clientId, uid)
+	return x.data.BindUid(clientId, uid)
 }
 
 func (x *WebsocketManager) UnbindUid(clientId, uid string) bool {
-	return x.Conn.UnbindUid(clientId, uid)
+	return x.data.UnbindUid(clientId, uid)
 }
 
 func (x *WebsocketManager) IsUidOnline(uid string) bool {
-	if len(x.Conn.Uid[uid]) > 0 {
+	if len(x.data.Uid[uid]) > 0 {
 		return true
 	}
 	return false
@@ -294,7 +294,7 @@ func (x *WebsocketManager) IsUidOnline(uid string) bool {
 
 //	func (x *WebsocketManager) GetAllGroupIdList() []string {
 //		var groups = make([]string, 0)
-//		for tmpGroupName, _ := range x.Conn.Group {
+//		for tmpGroupName, _ := range x.data.Group {
 //			groups = append(groups, tmpGroupName)
 //		}
 //		return groups
@@ -302,7 +302,7 @@ func (x *WebsocketManager) IsUidOnline(uid string) bool {
 
 func (x *WebsocketManager) GetAllGroupList() []string {
 	var groups = make([]string, 0)
-	for tmpGroupName, _ := range x.Conn.Group {
+	for tmpGroupName, _ := range x.data.Group {
 		groups = append(groups, tmpGroupName)
 	}
 	return groups
@@ -310,7 +310,7 @@ func (x *WebsocketManager) GetAllGroupList() []string {
 
 func (x *WebsocketManager) GetAllUidList() []string {
 	var userIds = make([]string, 0)
-	for tmpUid, _ := range x.Conn.Uid {
+	for tmpUid, _ := range x.data.Uid {
 		userIds = append(userIds, tmpUid)
 	}
 	return userIds
@@ -321,22 +321,24 @@ func (x *WebsocketManager) GetAllUidList() []string {
 
 func (x *WebsocketManager) GetAllClientIdList() []string {
 	var clientIds = make([]string, 0)
-	for tmpClientId, _ := range x.Conn.Conn {
-		clientIds = append(clientIds, tmpClientId)
-	}
+	//for tmpClientId, _ := range x.data.Conn {
+	//	clientIds = append(clientIds, tmpClientId)
+	//}
 	return clientIds
 }
 
 func (x *WebsocketManager) GetAllClientCount() int {
-	return len(x.Conn.Conn)
+	//return len(x.data.Conn)
+	return 0
 }
 
 //	func (x *WebsocketManager) GetAllClientIdCount() int {
-//		return len(x.Conn.Conn)
+//		return len(x.data.Conn)
 //	}
 
 func (x *WebsocketManager) GetUidByClientId(clientId string) string {
-	return x.Conn.Conn[clientId].Uid
+	//return x.data.Conn[clientId].Uid
+	return ""
 }
 
 // func (x *WebsocketManager) GetAllClientInfo()         {}
@@ -344,16 +346,16 @@ func (x *WebsocketManager) GetUidByClientId(clientId string) string {
 // func (x *WebsocketManager) GetAllGroupUidCount()     {}
 
 func (x *WebsocketManager) GetAllUidCount() int {
-	return len(x.Conn.Uid)
+	return len(x.data.Uid)
 }
 
 func (x *WebsocketManager) GetClientCountByGroup(groupName string) int {
-	return len(x.Conn.Group[groupName])
+	return len(x.data.Group[groupName])
 }
 
 func (x *WebsocketManager) GetClientIdByUid(uid string) []string {
 	var clientIds = make([]string, 0)
-	for tmpClientId := range x.Conn.Uid[uid] {
+	for tmpClientId := range x.data.Uid[uid] {
 		clientIds = append(clientIds, tmpClientId)
 	}
 	return clientIds
@@ -363,7 +365,7 @@ func (x *WebsocketManager) GetClientIdByUid(uid string) []string {
 
 func (x *WebsocketManager) GetClientIdListByGroup(groupName string) []string {
 	var clientIds = make([]string, 0)
-	for tmpClientId := range x.Conn.Group[groupName] {
+	for tmpClientId := range x.data.Group[groupName] {
 		clientIds = append(clientIds, tmpClientId)
 	}
 	return clientIds
@@ -374,8 +376,8 @@ func (x *WebsocketManager) GetClientIdListByGroup(groupName string) []string {
 //func (x *WebsocketManager) GetUidListByGroup()    {}
 
 func (x *WebsocketManager) Store(clientId string, ws *websocket.Conn) {
-	x.Conn.Store(clientId, ws)
+	x.data.Store(clientId, ws)
 }
 func (x *WebsocketManager) Remove(clientId string) {
-	x.Conn.Remove(clientId)
+	x.data.Remove(clientId)
 }

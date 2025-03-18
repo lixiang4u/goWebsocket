@@ -42,7 +42,7 @@ type H map[string]interface{}
 type WebsocketManager struct {
 	eventHandlers     map[string]EventHandler
 	userEventHandlers map[string]EventHandler
-	Conn              ConnectionMutex
+	data              DataHub
 	Config            struct {
 		Debug bool
 	}
@@ -53,11 +53,10 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	if len(debug) > 0 {
 		x.Config.Debug = debug[0]
 	}
-	x.Conn = ConnectionMutex{
-		Conn:  make(map[string]ConnectionCtx),
+	x.data = DataHub{
 		Uid:   make(map[string]map[string]bool),
 		Group: make(map[string]map[string]bool),
-		mutex: sync.RWMutex{},
+		Conn:  sync.Map{},
 	}
 	x.registerEvents()
 	return x
@@ -139,7 +138,7 @@ EXIT:
 		select {
 		case <-ticker.C:
 			// 检测是否已经在 ReadMessage 时断开，如果是需要跳出 WriteMessage 循环
-			if x.Conn.LoadConn(clientId) == nil {
+			if x.data.LoadConn(clientId) == nil {
 				//x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
 				break EXIT
 			}

@@ -5,95 +5,104 @@ import (
 	"sync"
 )
 
+type ClientMapEmpty map[string]bool
+
 type ConnectionCtx struct {
 	Socket *websocket.Conn
 	Group  map[string]bool
 	Uid    string
 }
 
-type ConnectionMutex struct {
-	Conn  map[string]ConnectionCtx   // [ClientId => CONNECTION_DATA]
-	Uid   map[string]map[string]bool // [Uid => [ClientId => bool]]
-	Group map[string]map[string]bool // [GroupName => [ClientId => bool]]
-	mutex sync.RWMutex
+type DataHub struct {
+	Uid   sync.Map // [Uid => ClientMapEmpty]
+	Group sync.Map // [GroupName => ClientMapEmpty]
+	Conn  sync.Map // [ClientId => ConnectionCtx]
 }
 
 // Store 连接时添加客户端信息
-func (x *ConnectionMutex) Store(clientId string, ws *websocket.Conn) {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
-	if _, ok := x.Conn[clientId]; !ok {
-		x.Conn[clientId] = ConnectionCtx{
+func (x *DataHub) Store(clientId string, ws *websocket.Conn) {
+	if _, ok := x.Conn.Load(clientId); !ok {
+		x.Conn.Store(clientId, ConnectionCtx{
 			Socket: ws,
 			Group:  make(map[string]bool),
 			Uid:    "",
-		}
+		})
 	}
 }
 
 // Remove 断开连接时删除客户端信息
-func (x *ConnectionMutex) Remove(clientId string) {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
+func (x *DataHub) Remove(clientId string) {
+	v, ok := x.Conn.Load(clientId)
+	if ok {
+		x.Conn.Delete(clientId)
+	}
+	var tmpV = v.(ConnectionCtx)
 
-	if v, ok := x.Conn[clientId]; ok {
-		delete(x.Conn, clientId)
-		delete(x.Uid, v.Uid)
-		for tmpGroup, _ := range v.Group {
-			if x.Group[tmpGroup] != nil {
-				delete(x.Group[tmpGroup], clientId)
-			}
+	if len(tmpV.Uid) != 0 {
+		x.Uid.Delete(tmpV.Uid)
+	}
+	for tmpGroupName, _ := range tmpV.Group {
+		if tmpGroupMap, ok2 := x.Group.Load(tmpGroupName); ok2 {
+			delete(tmpGroupMap.(ClientMapEmpty), clientId)
+			x.Group.Store(tmpGroupName, tmpGroupMap)
 		}
 	}
+	x.Conn.Store(clientId, tmpV)
 }
 
 // BindUid 绑定用户ID
-func (x *ConnectionMutex) BindUid(clientId, uid string) bool {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
-
-	v, ok := x.Conn[clientId]
+func (x *DataHub) BindUid(clientId, uid string) bool {
+	v, ok := x.Conn.Load(clientId)
 	if !ok {
 		return false
 	}
-	// 解绑当前连接之前的Uid
-	if x.Uid[uid] != nil {
-		delete(x.Uid[uid], clientId)
-	}
+
+	var tmpV = v.(ConnectionCtx)
+	var prevUid = tmpV.Uid
 
 	// 绑定新Uid到当前连接
-	v.Uid = uid
-	x.Conn[clientId] = v
+	tmpV.Uid = uid
+	x.Conn.Store(clientId, tmpV)
 
-	if x.Uid[uid] == nil {
-		x.Uid[uid] = make(map[string]bool)
+	// 解绑之前Uid
+	if u, ok := x.Uid.Load(prevUid); ok {
+		delete(u.(ClientMapEmpty), clientId)
+		x.Uid.Store(prevUid, u)
 	}
-	x.Uid[uid][clientId] = true
+
+	// 绑定新Uid
+	u, ok := x.Uid.Load(uid)
+	if !ok {
+		u = ClientMapEmpty{}
+	}
+	u.(ClientMapEmpty)[clientId] = true
+	x.Uid.Store(uid, u)
 
 	return true
 }
 
 // UnbindUid 解绑指定连接的Uid
-func (x *ConnectionMutex) UnbindUid(clientId, uid string) bool {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
-
-	v, ok := x.Conn[clientId]
+func (x *DataHub) UnbindUid(clientId, uid string) bool {
+	v, ok := x.Conn.Load(clientId)
 	if !ok {
 		return false
 	}
-	v.Uid = ""
-	x.Conn[clientId] = v
 
-	if x.Uid[uid] != nil {
-		delete(x.Uid[uid], clientId)
+	var tmpV = v.(ConnectionCtx)
+	if uid == tmpV.Uid {
+		tmpV.Uid = ""
 	}
+	x.Conn.Store(clientId, tmpV)
+
+	if u, ok := x.Uid.Load(uid); ok {
+		delete(u.(ClientMapEmpty), clientId)
+		x.Uid.Store(uid, u)
+	}
+
 	return true
 }
 
-func (x *ConnectionMutex) GetUidClientId(uid string) []string {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
+func (x *DataHub) GetUidClientId(uid string) []string {
 
 	var clientIds = make([]string, 0)
 	for clientId, _ := range x.Uid[uid] {
@@ -103,52 +112,46 @@ func (x *ConnectionMutex) GetUidClientId(uid string) []string {
 	return clientIds
 }
 
-func (x *ConnectionMutex) JoinGroup(clientId, groupName string) bool {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
+func (x *DataHub) JoinGroup(clientId, groupName string) bool {
 
-	v, ok := x.Conn[clientId]
-	if !ok {
-		return false
-	}
-
-	if v.Group == nil {
-		v.Group = make(map[string]bool)
-	}
-	v.Group[groupName] = true
-	x.Conn[clientId] = v
-
-	v2, ok := x.Group[groupName]
-	if !ok {
-		v2 = make(map[string]bool)
-	}
-	v2[clientId] = true
-	x.Group[groupName] = v2
+	//v, ok := x.Conn[clientId]
+	//if !ok {
+	//	return false
+	//}
+	//
+	//if v.Group == nil {
+	//	v.Group = make(map[string]bool)
+	//}
+	//v.Group[groupName] = true
+	//x.Conn[clientId] = v
+	//
+	//v2, ok := x.Group[groupName]
+	//if !ok {
+	//	v2 = make(map[string]bool)
+	//}
+	//v2[clientId] = true
+	//x.Group[groupName] = v2
 
 	return true
 }
 
-func (x *ConnectionMutex) LeaveGroup(clientId, groupName string) bool {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
+func (x *DataHub) LeaveGroup(clientId, groupName string) bool {
 
-	if _, ok := x.Conn[clientId]; !ok {
-		return false
-	}
-
-	if x.Conn[clientId].Group != nil {
-		delete(x.Conn[clientId].Group, groupName)
-	}
-	if x.Group[groupName] != nil {
-		delete(x.Group[groupName], clientId)
-	}
+	//if _, ok := x.Conn[clientId]; !ok {
+	//	return false
+	//}
+	//
+	//if x.Conn[clientId].Group != nil {
+	//	delete(x.Conn[clientId].Group, groupName)
+	//}
+	//if x.Group[groupName] != nil {
+	//	delete(x.Group[groupName], clientId)
+	//}
 
 	return true
 }
 
-func (x *ConnectionMutex) ListGroup() []string {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
+func (x *DataHub) ListGroup() []string {
 
 	var groups = make([]string, 0)
 	for g, _ := range x.Group {
@@ -158,9 +161,7 @@ func (x *ConnectionMutex) ListGroup() []string {
 	return groups
 }
 
-func (x *ConnectionMutex) ListGroupClientIds(groupName string) []string {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
+func (x *DataHub) ListGroupClientIds(groupName string) []string {
 
 	var clientIds = make([]string, 0)
 	for clientId, _ := range x.Group[groupName] {
@@ -169,9 +170,7 @@ func (x *ConnectionMutex) ListGroupClientIds(groupName string) []string {
 	return clientIds
 }
 
-func (x *ConnectionMutex) GetGroupClientIds(groupName string) []string {
-	x.mutex.Lock()
-	defer x.mutex.Unlock()
+func (x *DataHub) GetGroupClientIds(groupName string) []string {
 
 	var clientIds = make([]string, 0)
 	for clientId, _ := range x.Group[groupName] {
@@ -181,17 +180,9 @@ func (x *ConnectionMutex) GetGroupClientIds(groupName string) []string {
 	return clientIds
 }
 
-func (x *ConnectionMutex) LoadConn(clientId string) *websocket.Conn {
-	x.mutex.RLock()
-	defer x.mutex.RUnlock()
-	if _, ok := x.Conn[clientId]; !ok {
-		return nil
+func (x *DataHub) LoadConn(clientId string) *websocket.Conn {
+	if v, ok := x.Conn.Load(clientId); ok {
+		return v.(ConnectionCtx).Socket
 	}
-	return x.Conn[clientId].Socket
-}
-
-func (x *ConnectionMutex) LoadConnContext(clientId string) ConnectionCtx {
-	x.mutex.RLock()
-	defer x.mutex.RUnlock()
-	return x.Conn[clientId]
+	return nil
 }

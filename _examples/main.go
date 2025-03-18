@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/adaptor"
 	"github.com/lixiang4u/goWebsocket"
@@ -25,17 +24,6 @@ func main() {
 		appSocket.Handler(writer, request, nil)
 	}))
 
-	app.Get("/dd", func(ctx fiber.Ctx) error {
-		var _bindUid = "BU11111111"
-		appSocket.Store("5a356db8dbd746f3a0a75d24bee3d09f", nil)
-		appSocket.Store("b0e3b7f1dd044203a82109389f8cade2", nil)
-
-		appSocket.BindUid("5a356db8dbd746f3a0a75d24bee3d09f", _bindUid)
-		appSocket.BindUid("b0e3b7f1dd044203a82109389f8cade2", _bindUid)
-
-		return ctx.SendString(JsonString(appSocket.Conn.Conn))
-	})
-
 	app.Get("/debug", func(ctx fiber.Ctx) error {
 		log.Println("[time]", time.Now().String())
 
@@ -49,26 +37,26 @@ func main() {
 			//appSocket.UnbindUid(clientId, unbindUid)
 		}
 
-		log.Println(fmt.Sprintf("%#v", appSocket.Conn.Conn))
-		log.Println(fmt.Sprintf("%#v", appSocket.Conn.Uid))
-		log.Println(fmt.Sprintf("%#v", appSocket.Conn.Group))
-		log.Println("[appSocket.Conn.Conn]", JsonString(appSocket.Conn.Conn))
+		//log.Println(fmt.Sprintf("%#v", appSocket.Conn.Uid))
+		//log.Println(fmt.Sprintf("%#v", appSocket.Conn.Group))
 
 		// 再次检测是否有相同map键
+		//var tmpMap = make(map[string]bool)
+		//for tmpClientId, _ := range appSocket.Conn.Conn {
+		//	if _, ok := tmpMap[tmpClientId]; !ok {
+		//		tmpMap[tmpClientId] = true
+		//	} else {
+		//		log.Println("[已经存在Key]", tmpClientId)
+		//	}
+		//}
+
 		var tmpMap = make(map[string]bool)
-		for tmpClientId, _ := range appSocket.Conn.Conn {
-			if _, ok := tmpMap[tmpClientId]; !ok {
-				tmpMap[tmpClientId] = true
-			} else {
-				log.Println("[已经存在Key]", tmpClientId)
-			}
-		}
 
 		var rsp = fiber.Map{
-			"time":  time.Now().Unix(),
-			"Conn":  appSocket.Conn.Conn,
-			"Group": appSocket.Conn.Group,
-			"Uid":   appSocket.Conn.Uid,
+			"time": time.Now().Unix(),
+			"Conn": tmpMap,
+			//"Group": appSocket.Conn.Group,
+			//"Uid":   appSocket.Conn.Uid,
 		}
 
 		return RespSuccessData(&ctx, rsp)
