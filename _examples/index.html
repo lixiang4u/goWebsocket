@@ -46,7 +46,7 @@
 
     function newWS() {
         // 注册websocket事件
-        ws = new WebSocket('ws://127.0.0.1:8088/register');
+        ws = new WebSocket('ws://127.0.0.1:10800/websocket');
         ws.onopen = function (event) {
             console.log('[onopen]', event);
 
@@ -116,7 +116,7 @@
         console.log('[ping]')
         send('ping', msg.value)
 
-    }, 1000 * 45)
+    }, 1000 * 10)
 
 </script>
 
