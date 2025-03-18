@@ -36,6 +36,9 @@ func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) b
 }
 
 func (x *WebsocketManager) BindUid(clientId, uid string) bool {
+	if len(clientId) == 0 || len(uid) == 0 {
+		return false
+	}
 	v, ok := x.clients.Load(clientId)
 	if !ok {
 		return false
@@ -46,23 +49,29 @@ func (x *WebsocketManager) BindUid(clientId, uid string) bool {
 	tmpConn.Uid = uid
 	x.clients.Store(clientId, tmpConn)
 
-	// 删除旧Uid
-	var tmpU = ClientMapEmpty{}
-	u, ok := x.users.Load(prevUid)
-	if ok {
-		tmpU = u.(ClientMapEmpty)
-	}
-	delete(tmpU, clientId)
-	x.users.Store(prevUid, tmpU)
+	var tmpU ClientMapEmpty
 
 	// 绑定新Uid
-	tmpU = ClientMapEmpty{}
-	u, ok = x.users.Load(uid)
+	u, ok := x.users.Load(uid)
 	if ok {
 		tmpU = u.(ClientMapEmpty)
+	} else {
+		tmpU = ClientMapEmpty{}
 	}
 	tmpU[clientId] = true
-	x.users.Store(prevUid, tmpU)
+	x.users.Store(uid, tmpU)
+
+	if len(prevUid) > 0 {
+		// 删除旧Uid
+		u, ok = x.users.Load(prevUid)
+		if ok {
+			tmpU = u.(ClientMapEmpty)
+		} else {
+			tmpU = ClientMapEmpty{}
+		}
+		delete(tmpU, clientId)
+		x.users.Store(prevUid, tmpU)
+	}
 
 	return true
 }
