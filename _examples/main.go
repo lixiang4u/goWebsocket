@@ -41,7 +41,10 @@ func main() {
 		}
 
 		return ctx.JSON(fiber.Map{
-			"status": "success",
+			"status":    "success",
+			"ListConn":  appSocket.ListConn(),
+			"ListUser":  appSocket.ListUser(),
+			"ListGroup": appSocket.ListGroup(),
 		})
 	})
 
