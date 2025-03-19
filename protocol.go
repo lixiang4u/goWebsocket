@@ -18,8 +18,7 @@ type EventProtocolConnect struct {
 
 // MessageProtocol 消息类型
 type MessageProtocol struct {
-	FromId string      `json:"from_id"`
-	ToId   string      `json:"to_id"`
-	Event  string      `json:"event"`
+	FromId string      `json:"from_id,omitempty"`
+	ToId   string      `json:"to_id,omitempty"`
 	Data   interface{} `json:"data"`
 }

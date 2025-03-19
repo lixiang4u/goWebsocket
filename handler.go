@@ -41,7 +41,12 @@ func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
 }
 
 // Send 对外接口，用于发送ws消息到指定clientId
-func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) bool {
+func (x *WebsocketManager) Send(clientId string, data []byte) bool {
+	x.send <- MessageProtocol{ToId: clientId, Data: data}
+	return true
+}
+
+func (x *WebsocketManager) _send(clientId string, messageType int, data []byte) bool {
 	if v, ok := x.clients.Get(clientId); ok && v.Socket != nil {
 		if err := v.Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 			return false
