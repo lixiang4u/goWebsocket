@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-//type MapKB cmap.ConcurrentMap[string, bool]
-
-//type MapClientCtx cmap.ConcurrentMap[string, ConnectionCtx]
-
 type ConnectionCtx struct {
 	Socket *websocket.Conn `json:"socket,omitempty"`
 	Group  map[string]bool `json:"group"`
@@ -249,7 +245,7 @@ func (x *WebsocketManager) SendToAll(data []byte) bool {
 	return true
 }
 
-// =====================================================================================
+// 获取列表
 
 func (x *WebsocketManager) ListGroup() map[string]map[string]bool {
 	var groups = make(map[string]map[string]bool)
@@ -294,4 +290,18 @@ func (x *WebsocketManager) ListConn() map[string]ConnectionCtxPlain {
 		conn[tmpId] = v
 	}
 	return conn
+}
+
+// 统计
+
+func (x *WebsocketManager) ClientCount() int {
+	return x.clients.Count()
+}
+
+func (x *WebsocketManager) UserCount() int {
+	return x.users.Count()
+}
+
+func (x *WebsocketManager) GroupCount() int {
+	return x.groups.Count()
 }
