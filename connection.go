@@ -37,10 +37,6 @@ type CmdCtx struct {
 	Data any
 }
 
-func (x *WebsocketManager) R(ctx ClientCtx) {
-	x.registerHandler(ctx)
-}
-
 func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
 	if _, ok := x.clients.Get(ctx.Id); !ok {
 		x.clients.Set(ctx.Id, ConnectionCtx{
@@ -69,25 +65,6 @@ func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
 		}
 		return true
 	})
-}
-
-// Send 对外接口，用于发送ws消息到指定clientId
-func (x *WebsocketManager) Send(clientId string, data []byte) bool {
-	x.send <- MessageProtocol{ToId: clientId, Data: data}
-	return true
-}
-
-func (x *WebsocketManager) _send(clientId string, messageType int, data []byte) bool {
-	if v, ok := x.clients.Get(clientId); ok && v.Socket != nil {
-		if err := v.Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-			return false
-		}
-		if err := v.Socket.WriteMessage(messageType, data); err != nil {
-			return false
-		}
-		return true
-	}
-	return false
 }
 
 func (x *WebsocketManager) BindUid(clientId, uid string) bool {
@@ -231,12 +208,44 @@ func (x *WebsocketManager) ListUserClient(uid string) []string {
 	return clientList
 }
 
-// SendToGroup 发送消息到组
-func (x *WebsocketManager) SendToGroup(groupName string, messageType int, data []byte) bool {
+// Send 对外接口，用于发送ws消息到指定clientId
+func (x *WebsocketManager) Send(clientId string, data []byte) bool {
+	x.send <- MessageProtocol{ToId: clientId, Data: data}
 	return true
 }
 
-func (x *WebsocketManager) SendToUid(uid string, messageType int, data []byte) bool {
+func (x *WebsocketManager) _send(clientId string, messageType int, data []byte) bool {
+	if v, ok := x.clients.Get(clientId); ok && v.Socket != nil {
+		if err := v.Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+			return false
+		}
+		if err := v.Socket.WriteMessage(messageType, data); err != nil {
+			return false
+		}
+		return true
+	}
+	return false
+}
+
+// SendToGroup 发送消息到组
+func (x *WebsocketManager) SendToGroup(groupName string, data []byte) bool {
+	for _, tmpClientId := range x.ListGroupClient(groupName) {
+		x.Send(tmpClientId, data)
+	}
+	return true
+}
+
+func (x *WebsocketManager) SendToUid(uid string, data []byte) bool {
+	for _, tmpClientId := range x.ListUserClient(uid) {
+		x.Send(tmpClientId, data)
+	}
+	return true
+}
+
+func (x *WebsocketManager) SendToAll(data []byte) bool {
+	x.clients.IterCb(func(key string, v ConnectionCtx) {
+		x.Send(key, data)
+	})
 	return true
 }
 
