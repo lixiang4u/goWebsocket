@@ -95,6 +95,25 @@ func (x *WebsocketManager) BindUid(clientId, uid string) bool {
 	return true
 }
 
+func (x *WebsocketManager) UnbindUid(clientId, uid string) bool {
+	if len(clientId) == 0 || len(uid) == 0 {
+		return false
+	}
+	v, ok := x.clients.Get(clientId)
+	if !ok {
+		return false
+	}
+	if len(v.Uid) == 0 {
+		return true
+	}
+	if tmpU, ok := x.users.Get(v.Uid); ok {
+		tmpU.Remove(clientId)
+		x.users.Set(v.Uid, tmpU)
+	}
+	v.Uid = ""
+	return true
+}
+
 func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	return true
 }
