@@ -32,6 +32,21 @@ func main() {
 		})
 	})
 
+	app.Get("/debug", func(ctx fiber.Ctx) error {
+		appSocket.R(goWebsocket.ClientCtx{Id: "3bfb7f5715fa450094d2282d44de77ad", Socket: nil})
+		appSocket.R(goWebsocket.ClientCtx{Id: "bbae4c7cb40e4594bcf70cf8b59037e9", Socket: nil})
+
+		appSocket.BindUid("3bfb7f5715fa450094d2282d44de77ad", "BU222")
+		appSocket.BindUid("bbae4c7cb40e4594bcf70cf8b59037e9", "BU222")
+
+		return ctx.JSON(fiber.Map{
+			"status":    "success",
+			"ListConn":  appSocket.ListConn(),
+			"ListUser":  appSocket.ListUser(),
+			"ListGroup": appSocket.ListGroup(),
+		})
+	})
+
 	app.Get("/bind-uid", func(ctx fiber.Ctx) error {
 		var clientId = ctx.Query("client_id")
 		var uid = ctx.Query("uid")

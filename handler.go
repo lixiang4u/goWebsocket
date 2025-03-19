@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+func (x *WebsocketManager) R(ctx ClientCtx) {
+	x.registerHandler(ctx)
+}
+
 func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
 	if _, ok := x.clients.Load(ctx.Id); !ok {
 		x.clients.Store(ctx.Id, ConnectionCtx{
