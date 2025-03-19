@@ -2,17 +2,16 @@ package goWebsocket
 
 import (
 	"github.com/gorilla/websocket"
-	cmap "github.com/lixiang4u/concurrent-map"
 )
 
 //type MapKB cmap.ConcurrentMap[string, bool]
 
-type MapClientCtx cmap.ConcurrentMap[string, ConnectionCtx]
+//type MapClientCtx cmap.ConcurrentMap[string, ConnectionCtx]
 
 type ConnectionCtx struct {
-	Socket *websocket.Conn                                              `json:"socket,omitempty"`
-	Group  cmap.ConcurrentMap[string, cmap.ConcurrentMap[string, bool]] `json:"group"`
-	Uid    string                                                       `json:"uid"`
+	Socket *websocket.Conn `json:"socket,omitempty"`
+	Group  map[string]bool `json:"group"`
+	Uid    string          `json:"uid"`
 }
 
 type ConnectionCtxPlain struct {

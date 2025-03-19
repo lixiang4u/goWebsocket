@@ -17,7 +17,7 @@ func main() {
 	var app = gin.New()
 	app.Use(gin.Logger(), gin.Recovery())
 
-	app.StaticFile("/connect", filepath.Join(goWebsocket.AppPath(), "_examples/index.html"))
+	app.StaticFile("/", filepath.Join(goWebsocket.AppPath(), "_examples/index.html"))
 
 	app.GET("websocket", func(ctx *gin.Context) {
 		log.Println("[websocket]", time.Now().String())

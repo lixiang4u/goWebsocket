@@ -14,7 +14,7 @@ func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
 	if _, ok := x.clients.Get(ctx.Id); !ok {
 		x.clients.Set(ctx.Id, ConnectionCtx{
 			Socket: ctx.Socket,
-			Group:  cmap.ConcurrentMap[string, cmap.ConcurrentMap[string, bool]]{},
+			Group:  make(map[string]bool),
 			Uid:    "",
 		})
 	}
@@ -22,6 +22,20 @@ func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
 
 func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
 	x.clients.RemoveCb(ctx.Id, func(key string, v ConnectionCtx, exists bool) bool {
+		if len(v.Uid) > 0 {
+			if tmpU, ok := x.users.Get(v.Uid); ok {
+				tmpU.Remove(key)
+				x.users.Set(v.Uid, tmpU)
+			}
+		}
+		if v.Group != nil {
+			for tmpGroupName, _ := range v.Group {
+				if tmpG, ok := x.groups.Get(tmpGroupName); ok {
+					tmpG.Remove(key)
+					x.groups.Set(tmpGroupName, tmpG)
+				}
+			}
+		}
 		return true
 	})
 }
