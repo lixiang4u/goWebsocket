@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	cmap "github.com/orcaman/concurrent-map/v2"
 	"log"
 	"net/http"
 	"slices"
-	"sync"
 	"time"
 )
 
@@ -47,13 +47,9 @@ type WebsocketManager struct {
 	eventHandlers     map[string]EventHandler
 	userEventHandlers map[string]EventHandler
 
-	//clients map[string]ConnectionCtx
-	//groups  map[string]ClientMapEmpty
-	//users   map[string]ClientMapEmpty
-
-	clients sync.Map // [ClientId => ConnectionCtx]
-	users   sync.Map // [Uid => ClientMapEmpty]
-	groups  sync.Map // [GroupName => ClientMapEmpty]
+	clients cmap.ConcurrentMap[string, ConnectionCtx]                    // [ClientId => ConnectionCtx]
+	users   cmap.ConcurrentMap[string, cmap.ConcurrentMap[string, bool]] // [Uid => ClientMapEmpty]
+	groups  cmap.ConcurrentMap[string, cmap.ConcurrentMap[string, bool]] // [GroupName => ClientMapEmpty]
 
 	// events
 	broadcast  chan MessageCtx
@@ -72,6 +68,10 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	x.register = make(chan ClientCtx)
 	x.unregister = make(chan ClientCtx)
 	x.send = make(chan MessageProtocol)
+
+	x.clients = cmap.New[ConnectionCtx]()
+	x.users = cmap.New[cmap.ConcurrentMap[string, bool]]()
+	x.groups = cmap.New[cmap.ConcurrentMap[string, bool]]()
 
 	go x.registerChannelEvent()
 	x.registerEvents()
@@ -164,10 +164,10 @@ EXIT:
 		select {
 		case <-ticker.C:
 			// 检测是否已经在 ReadMessage 时断开，如果是需要跳出 WriteMessage 循环
-			if _, ok := x.clients.Load(clientId); !ok {
-				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
-				break EXIT
-			}
+			//if _, ok := x.clients.Load(clientId); !ok {
+			//	x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
+			//	break EXIT
+			//}
 			if err := ws.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
 				break EXIT

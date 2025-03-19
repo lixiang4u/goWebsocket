@@ -2,6 +2,7 @@ package goWebsocket
 
 import (
 	"github.com/gorilla/websocket"
+	cmap "github.com/orcaman/concurrent-map/v2"
 	"time"
 )
 
@@ -10,28 +11,28 @@ func (x *WebsocketManager) R(ctx ClientCtx) {
 }
 
 func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
-	if _, ok := x.clients.Load(ctx.Id); !ok {
-		x.clients.Store(ctx.Id, ConnectionCtx{
+	if _, ok := x.clients.Get(ctx.Id); !ok {
+		x.clients.Set(ctx.Id, ConnectionCtx{
 			Socket: ctx.Socket,
-			Group:  make(map[string]bool),
+			Group:  cmap.ConcurrentMap[string, cmap.ConcurrentMap[string, bool]]{},
 			Uid:    "",
 		})
 	}
 }
 
 func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
-	if _, ok := x.clients.Load(ctx.Id); ok {
-		x.clients.Delete(ctx.Id)
-	}
+	x.clients.RemoveCb(ctx.Id, func(key string, v ConnectionCtx, exists bool) bool {
+		return true
+	})
 }
 
 // Send 对外接口，用于发送ws消息到指定clientId
 func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) bool {
-	if v, ok := x.clients.Load(clientId); ok {
-		if err := v.(ClientCtx).Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+	if v, ok := x.clients.Get(clientId); ok {
+		if err := v.Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 			return false
 		}
-		if err := v.(ClientCtx).Socket.WriteMessage(messageType, data); err != nil {
+		if err := v.Socket.WriteMessage(messageType, data); err != nil {
 			return false
 		}
 		return true
@@ -43,39 +44,39 @@ func (x *WebsocketManager) BindUid(clientId, uid string) bool {
 	if len(clientId) == 0 || len(uid) == 0 {
 		return false
 	}
-	v, ok := x.clients.Load(clientId)
+	v, ok := x.clients.Get(clientId)
 	if !ok {
 		return false
 	}
-	var tmpConn = v.(ConnectionCtx)
+	var tmpConn = v
 	var prevUid = tmpConn.Uid
 
 	tmpConn.Uid = uid
-	x.clients.Store(clientId, tmpConn)
+	x.clients.Set(clientId, tmpConn)
 
-	var tmpU ClientMapEmpty
+	var tmpU cmap.ConcurrentMap[string, bool]
 
 	if len(prevUid) > 0 && prevUid != uid {
 		// 删除旧Uid
-		u, ok := x.users.Load(prevUid)
+		u, ok := x.users.Get(prevUid)
 		if ok {
-			tmpU = u.(ClientMapEmpty)
+			tmpU = u
 		} else {
-			tmpU = ClientMapEmpty{}
+			tmpU = cmap.New[bool]()
 		}
-		delete(tmpU, clientId)
-		x.users.Store(prevUid, tmpU)
+		tmpU.Remove(clientId)
+		x.users.Set(prevUid, tmpU)
 	}
 
 	// 绑定新Uid
-	u, ok := x.users.Load(uid)
+	u, ok := x.users.Get(uid)
 	if ok {
-		tmpU = u.(ClientMapEmpty)
+		tmpU = u
 	} else {
-		tmpU = ClientMapEmpty{}
+		tmpU = cmap.New[bool]()
 	}
-	tmpU[clientId] = true
-	x.users.Store(uid, tmpU)
+	tmpU.Set(clientId, true)
+	x.users.Set(uid, tmpU)
 
 	return true
 }
@@ -149,50 +150,45 @@ func (x *WebsocketManager) SendToUid(uid string, messageType int, data []byte) b
 
 // =====================================================================================
 
-func (x *WebsocketManager) ListGroup() map[string]ClientMapEmpty {
-	var groups = make(map[string]ClientMapEmpty)
-	x.groups.Range(func(key, value any) bool {
-		var tmpKey = key.(string)
-		if groups[tmpKey] == nil {
-			groups[tmpKey] = make(ClientMapEmpty)
+func (x *WebsocketManager) ListGroup() map[string]map[string]bool {
+	var groups = make(map[string]map[string]bool)
+	for tmpGroup, tmpValue := range x.groups.Items() {
+		if groups[tmpGroup] == nil {
+			groups[tmpGroup] = make(map[string]bool)
 		}
-		for tmpClientId, b := range value.(ClientMapEmpty) {
-			groups[tmpKey][tmpClientId] = b
+		for tmpId, b := range tmpValue.Items() {
+			groups[tmpGroup][tmpId] = b
 		}
-		return true
-	})
+	}
 	return groups
 }
 
-func (x *WebsocketManager) ListUser() map[string]ClientMapEmpty {
-	var uid = make(map[string]ClientMapEmpty)
-	x.users.Range(func(key, value any) bool {
-		var tmpKey = key.(string)
-		if uid[tmpKey] == nil {
-			uid[tmpKey] = make(ClientMapEmpty)
+func (x *WebsocketManager) ListUser() map[string]map[string]bool {
+	var uid = make(map[string]map[string]bool)
+	for tmpUid, tmpValue := range x.users.Items() {
+		if uid[tmpUid] == nil {
+			uid[tmpUid] = make(map[string]bool)
 		}
-		for tmpClientId, b := range value.(ClientMapEmpty) {
-			uid[tmpKey][tmpClientId] = b
+		for tmpId, b := range tmpValue.Items() {
+			uid[tmpUid][tmpId] = b
 		}
-		return true
-	})
+	}
 	return uid
 }
 
-func (x *WebsocketManager) ListConn() map[string]ConnectionCtx {
-	var conn = make(map[string]ConnectionCtx)
-	x.clients.Range(func(key, value any) bool {
-		var tmpKey = key.(string)
-		v, ok := conn[tmpKey]
+func (x *WebsocketManager) ListConn() map[string]ConnectionCtxPlain {
+	var conn = make(map[string]ConnectionCtxPlain)
+	for tmpId, tmpValue := range x.clients.Items() {
+		v, ok := conn[tmpId]
 		if !ok {
-			conn[tmpKey] = ConnectionCtx{}
+			v = ConnectionCtxPlain{Group: make(map[string]bool)}
 		}
-		v.Uid = value.(ConnectionCtx).Uid
-		for tmpClientId, b := range value.(ConnectionCtx).Group {
-			v.Group[tmpClientId] = b
+		v.Uid = tmpValue.Uid
+
+		for tmpGroupId, _ := range tmpValue.Group.Items() {
+			v.Group[tmpGroupId] = true
 		}
-		conn[tmpKey] = v
-		return true
-	})
+		conn[tmpId] = v
+	}
 	return conn
 }

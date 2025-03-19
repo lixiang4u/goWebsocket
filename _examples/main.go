@@ -19,6 +19,7 @@ func main() {
 	app.Get("/index.html", func(ctx fiber.Ctx) error {
 		return ctx.SendFile("./_examples/index.html")
 	})
+
 	app.Get("/websocket", adaptor.HTTPHandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		log.Println("[websocket]", time.Now().String())
 		appSocket.Handler(writer, request, nil)
@@ -47,7 +48,7 @@ func main() {
 		})
 	})
 
-	app.Get("/bind-uid", func(ctx fiber.Ctx) error {
+	app.Get("/bind-uid-v1", func(ctx fiber.Ctx) error {
 		var clientId = ctx.Query("client_id")
 		var uid = ctx.Query("uid")
 
@@ -77,25 +78,6 @@ func main() {
 			"ListUser":  appSocket.ListUser(),
 			"ListGroup": appSocket.ListGroup(),
 		})
-	})
-
-	app.Get("/debug", func(ctx fiber.Ctx) error {
-
-		var clientId = ctx.Query("client_id")
-		var bindUid = ctx.Query("bind_uid")
-		var unbindUid = ctx.Query("unbind_uid")
-		if len(bindUid) > 0 {
-			log.Println("[BindUid]", clientId, "=>", bindUid)
-		}
-		if len(unbindUid) > 0 {
-			//appSocket.UnbindUid(clientId, unbindUid)
-		}
-
-		var rsp = fiber.Map{
-			"time": time.Now().Unix(),
-		}
-
-		return RespSuccessData(&ctx, rsp)
 	})
 
 	log.Fatal(app.Listen(":10800"))
