@@ -63,6 +63,22 @@ func main() {
 		})
 	})
 
+	app.Get("/bind-uid-v2", func(ctx fiber.Ctx) error {
+		var clientId = ctx.Query("client_id")
+		var uid = ctx.Query("uid")
+
+		if len(clientId) > 0 && len(uid) > 0 {
+			log.Println("[A]", clientId, uid)
+		}
+
+		return ctx.JSON(fiber.Map{
+			"status":    "success",
+			"ListConn":  appSocket.ListConn(),
+			"ListUser":  appSocket.ListUser(),
+			"ListGroup": appSocket.ListGroup(),
+		})
+	})
+
 	app.Get("/debug", func(ctx fiber.Ctx) error {
 
 		var clientId = ctx.Query("client_id")
@@ -74,19 +90,6 @@ func main() {
 		if len(unbindUid) > 0 {
 			//appSocket.UnbindUid(clientId, unbindUid)
 		}
-
-		//log.Println(fmt.Sprintf("%#v", appSocket.Conn.Uid))
-		//log.Println(fmt.Sprintf("%#v", appSocket.Conn.Group))
-
-		// 再次检测是否有相同map键
-		//var tmpMap = make(map[string]bool)
-		//for tmpClientId, _ := range appSocket.Conn.Conn {
-		//	if _, ok := tmpMap[tmpClientId]; !ok {
-		//		tmpMap[tmpClientId] = true
-		//	} else {
-		//		log.Println("[已经存在Key]", tmpClientId)
-		//	}
-		//}
 
 		var rsp = fiber.Map{
 			"time": time.Now().Unix(),
