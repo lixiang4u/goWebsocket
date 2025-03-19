@@ -191,20 +191,20 @@ func (x *WebsocketManager) registerEvents() {
 	if x.eventHandlers == nil {
 		x.eventHandlers = make(map[string]EventHandler)
 	}
-	x.eventHandlers[Event(EventHelp).String()] = x.eventHelpHandler
-	x.eventHandlers[Event(EventConnect).String()] = x.eventConnectHandler
-	x.eventHandlers[Event(EventClose).String()] = x.eventCloseHandler
-	x.eventHandlers[Event(EventStat).String()] = x.eventStatHandler
-	x.eventHandlers[Event(EventPing).String()] = x.eventPingHandler
-	x.eventHandlers[Event(EventBindUid).String()] = x.eventBindUidHandler
+	//x.eventHandlers[Event(EventHelp).String()] = x.eventHelpHandler
+	//x.eventHandlers[Event(EventConnect).String()] = x.eventConnectHandler
+	//x.eventHandlers[Event(EventClose).String()] = x.eventCloseHandler
+	//x.eventHandlers[Event(EventStat).String()] = x.eventStatHandler
+	//x.eventHandlers[Event(EventPing).String()] = x.eventPingHandler
+	//x.eventHandlers[Event(EventBindUid).String()] = x.eventBindUidHandler
 	x.eventHandlers[Event(EventSendToClient).String()] = x.eventSendToClientHandler
-	x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
-	x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
+	//x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
+	//x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
 	//x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
-	x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
-	x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
-	x.eventHandlers[Event(EventListGroup).String()] = x.eventListGroupHandler
-	x.eventHandlers[Event(EventListGroupClient).String()] = x.eventListGroupClientHandler
+	//x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
+	//x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
+	//x.eventHandlers[Event(EventListGroup).String()] = x.eventListGroupHandler
+	//x.eventHandlers[Event(EventListGroupClient).String()] = x.eventListGroupClientHandler
 }
 
 func (x *WebsocketManager) Log(format string, v ...interface{}) {
