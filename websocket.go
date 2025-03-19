@@ -83,19 +83,14 @@ func (x *WebsocketManager) registerChannelEvent() {
 	for {
 		select {
 		case data := <-x.send:
-			log.Println(fmt.Sprintf("[消息] %s => %s", data.FromId, data.ToId))
 			x._send(data.ToId, websocket.TextMessage, ToBuff(data))
 		case ctx := <-x.register:
-			log.Println("[注册]")
 			x.registerHandler(ctx)
 		case ctx := <-x.unregister:
-			log.Println("[注销]")
 			x.unregisterHandler(ctx)
-		case <-x.broadcast:
-			log.Println("[广播]")
+		case data := <-x.broadcast:
+			x.SendToAll(data.Msg)
 		}
-
-		///
 	}
 }
 

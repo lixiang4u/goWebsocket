@@ -115,7 +115,6 @@ func main() {
 	})
 
 	app.Get("/websocket", adaptor.HTTPHandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		log.Println("[websocket]", time.Now().String())
 		appSocket.Handler(writer, request, nil)
 	}))
 
@@ -148,7 +147,7 @@ func main() {
 		var uid = ctx.Query("uid")
 
 		if len(clientId) > 0 && len(uid) > 0 {
-			log.Println("[A]", clientId, uid)
+			log.Println("[bind-uid-v2]", clientId, uid)
 		}
 
 		return ctx.JSON(fiber.Map{
