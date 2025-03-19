@@ -106,11 +106,62 @@ func (x *WebsocketManager) UnbindUid(clientId, uid string) bool {
 	if len(v.Uid) == 0 {
 		return true
 	}
+
 	if tmpU, ok := x.users.Get(v.Uid); ok {
 		tmpU.Remove(clientId)
 		x.users.Set(v.Uid, tmpU)
 	}
+
 	v.Uid = ""
+
+	return true
+}
+
+func (x *WebsocketManager) JoinGroup(clientId, group string) bool {
+	if len(clientId) == 0 || len(group) == 0 {
+		return false
+	}
+	v, ok := x.clients.Get(clientId)
+	if !ok {
+		return false
+	}
+	if v.Group == nil {
+		v.Group = make(map[string]bool)
+	}
+	if _, ok := v.Group[group]; !ok {
+		v.Group[group] = true
+		x.clients.Set(clientId, v)
+	}
+
+	tmpGroup, ok := x.groups.Get(group)
+	if !ok {
+		tmpGroup = cmap.New[bool]()
+	}
+	tmpGroup.Set(clientId, true)
+	x.groups.Set(group, tmpGroup)
+
+	return true
+}
+
+func (x *WebsocketManager) LeaveGroup(clientId, group string) bool {
+	if len(clientId) == 0 || len(group) == 0 {
+		return false
+	}
+	v, ok := x.clients.Get(clientId)
+	if !ok {
+		return false
+	}
+
+	if v.Group != nil {
+		delete(v.Group, group)
+		x.clients.Set(clientId, v)
+	}
+
+	if tmpGroup, ok := x.groups.Get(group); ok {
+		tmpGroup.Remove(clientId)
+		x.groups.Set(group, tmpGroup)
+	}
+
 	return true
 }
 
