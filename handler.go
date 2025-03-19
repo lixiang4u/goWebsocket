@@ -165,6 +165,36 @@ func (x *WebsocketManager) LeaveGroup(clientId, group string) bool {
 	return true
 }
 
+func (x *WebsocketManager) ListGroupClient(group string) []string {
+	var clientList = make([]string, 0)
+	tmpGroup, ok := x.groups.Get(group)
+	if !ok {
+		return clientList
+	}
+	if tmpGroup.IsNil() {
+		return clientList
+	}
+	for tmpClientId, _ := range tmpGroup.Items() {
+		clientList = append(clientList, tmpClientId)
+	}
+	return clientList
+}
+
+func (x *WebsocketManager) ListUserClient(uid string) []string {
+	var clientList = make([]string, 0)
+	tmpUser, ok := x.users.Get(uid)
+	if !ok {
+		return clientList
+	}
+	if tmpUser.IsNil() {
+		return clientList
+	}
+	for tmpClientId, _ := range tmpUser.Items() {
+		clientList = append(clientList, tmpClientId)
+	}
+	return clientList
+}
+
 func (x *WebsocketManager) eventHelpHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
 	return true
 }
