@@ -42,7 +42,7 @@ func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
 
 // Send 对外接口，用于发送ws消息到指定clientId
 func (x *WebsocketManager) Send(clientId string, messageType int, data []byte) bool {
-	if v, ok := x.clients.Get(clientId); ok {
+	if v, ok := x.clients.Get(clientId); ok && v.Socket != nil {
 		if err := v.Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 			return false
 		}
@@ -199,8 +199,8 @@ func (x *WebsocketManager) ListConn() map[string]ConnectionCtxPlain {
 		}
 		v.Uid = tmpValue.Uid
 
-		if !tmpValue.Group.IsNil() {
-			for tmpGroupId, _ := range tmpValue.Group.Items() {
+		if tmpValue.Group != nil {
+			for tmpGroupId, _ := range tmpValue.Group {
 				v.Group[tmpGroupId] = true
 			}
 		}
