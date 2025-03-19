@@ -2,7 +2,7 @@ package goWebsocket
 
 import (
 	"github.com/gorilla/websocket"
-	cmap "github.com/orcaman/concurrent-map/v2"
+	cmap "github.com/lixiang4u/concurrent-map"
 )
 
 //type MapKB cmap.ConcurrentMap[string, bool]

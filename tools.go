@@ -3,6 +3,8 @@ package goWebsocket
 import (
 	"encoding/json"
 	"github.com/google/uuid"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -24,4 +26,12 @@ func ToJson(v interface{}) string {
 func ToBuff(v interface{}) []byte {
 	buff, _ := json.Marshal(v)
 	return buff
+}
+
+func AppPath() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return ""
+	}
+	return dir
 }

@@ -2,7 +2,7 @@ package goWebsocket
 
 import (
 	"github.com/gorilla/websocket"
-	cmap "github.com/orcaman/concurrent-map/v2"
+	cmap "github.com/lixiang4u/concurrent-map"
 	"time"
 )
 
@@ -185,8 +185,10 @@ func (x *WebsocketManager) ListConn() map[string]ConnectionCtxPlain {
 		}
 		v.Uid = tmpValue.Uid
 
-		for tmpGroupId, _ := range tmpValue.Group.Items() {
-			v.Group[tmpGroupId] = true
+		if !tmpValue.Group.IsNil() {
+			for tmpGroupId, _ := range tmpValue.Group.Items() {
+				v.Group[tmpGroupId] = true
+			}
 		}
 		conn[tmpId] = v
 	}

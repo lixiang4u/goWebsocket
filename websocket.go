@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
-	cmap "github.com/orcaman/concurrent-map/v2"
+	cmap "github.com/lixiang4u/concurrent-map"
 	"log"
 	"net/http"
 	"slices"
@@ -164,10 +164,10 @@ EXIT:
 		select {
 		case <-ticker.C:
 			// 检测是否已经在 ReadMessage 时断开，如果是需要跳出 WriteMessage 循环
-			//if _, ok := x.clients.Load(clientId); !ok {
-			//	x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
-			//	break EXIT
-			//}
+			if _, ok := x.clients.Get(clientId); !ok {
+				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
+				break EXIT
+			}
 			if err := ws.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
 				break EXIT
