@@ -126,32 +126,39 @@ func main() {
 		})
 	})
 
-	app.Get("/bind-uid-v1", func(ctx fiber.Ctx) error {
+	app.Get("/debug-socket", func(ctx fiber.Ctx) error {
 		var clientId = ctx.Query("client_id")
 		var uid = ctx.Query("uid")
+		var group = ctx.Query("group")
+		var event = ctx.Query("event")
 
-		if len(clientId) > 0 && len(uid) > 0 {
-			appSocket.BindUid(clientId, uid)
+		var b = false
+		if len(clientId) > 0 {
+			switch event {
+			case "bind":
+				b = appSocket.BindUid(clientId, uid)
+				break
+			case "unbind":
+				b = appSocket.UnbindUid(clientId, uid)
+				break
+			case "join":
+				b = appSocket.JoinGroup(clientId, group)
+				break
+			case "leave":
+				b = appSocket.LeaveGroup(clientId, group)
+				break
+			case "send":
+				b = appSocket.Send(clientId, fiber.Map{
+					"to":   clientId,
+					"time": time.Now(),
+					"r":    goWebsocket.UUID(),
+				})
+				break
+			}
 		}
 
 		return ctx.JSON(fiber.Map{
-			"status":    "success",
-			"ListConn":  appSocket.ListConn(),
-			"ListUser":  appSocket.ListUser(),
-			"ListGroup": appSocket.ListGroup(),
-		})
-	})
-
-	app.Get("/bind-uid-v2", func(ctx fiber.Ctx) error {
-		var clientId = ctx.Query("client_id")
-		var uid = ctx.Query("uid")
-
-		if len(clientId) > 0 && len(uid) > 0 {
-			log.Println("[bind-uid-v2]", clientId, uid)
-		}
-
-		return ctx.JSON(fiber.Map{
-			"status":    "success",
+			"status":    b,
 			"ListConn":  appSocket.ListConn(),
 			"ListUser":  appSocket.ListUser(),
 			"ListGroup": appSocket.ListGroup(),
