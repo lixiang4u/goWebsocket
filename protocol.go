@@ -10,10 +10,10 @@ type ConnectionCtx struct {
 
 // EventCtx 消息交换格式
 type EventCtx struct {
-	Id     string          `json:"id"`               // 客户端Id
-	Group  string          `json:"group,omitempty"`  // 组名/ID
-	Uid    string          `json:"uid,omitempty"`    // 用户ID
-	Socket *websocket.Conn `json:"socket,omitempty"` // 连接
+	Id     string          `json:"id"`               // 接收消息的客户端Id；发送人不一定知道（可能直接方法调用 appSocket.SendToGroup）
+	Group  string          `json:"group,omitempty"`  // 接收消息的组名/ID
+	Uid    string          `json:"uid,omitempty"`    // 接收消息的用户ID
+	Socket *websocket.Conn `json:"socket,omitempty"` // 发送消息的连接
 	Data   interface{}     `json:"data"`             // 数据
-	Event  string          `json:"event,omitempty"`  // websocket 事件名,通过websocket直接通信使用；ws数据交互格式 基于json event字段必选
+	Event  string          `json:"event,omitempty"`  // 【只有通过websocket发送消息才有的事件】websocket 事件名,通过websocket直接通信使用；ws数据交互格式 基于json event字段必选
 }

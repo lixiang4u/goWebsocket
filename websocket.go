@@ -76,12 +76,12 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	x.users = cmap.New[cmap.ConcurrentMap[string, bool]]()
 	x.groups = cmap.New[cmap.ConcurrentMap[string, bool]]()
 
-	go x.registerChannelEvent()
+	go x.registerEvent()
 
 	return x
 }
 
-func (x *WebsocketManager) registerChannelEvent() {
+func (x *WebsocketManager) registerEvent() {
 	for {
 		select {
 		case ctx := <-x.register:
@@ -205,7 +205,7 @@ EXIT:
 	}
 }
 
-// On 注册事件；目前支持 EventConnect EventClose EventBindUid EventUnbindUid EventJoinGroup EventLeaveGroup EventSendToClient EventSendToGroup EventSendToUid EventBroadcast (registerChannelEvent 中所有事件)
+// On 注册事件；目前支持 EventConnect EventClose EventBindUid EventUnbindUid EventJoinGroup EventLeaveGroup EventSendToClient EventSendToGroup EventSendToUid EventBroadcast (registerEvent 中所有事件)
 func (x *WebsocketManager) On(eventName string, f EventHandler) bool {
 	if len(eventName) < 1 {
 		return false
