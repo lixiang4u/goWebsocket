@@ -87,7 +87,7 @@ func (x *WebsocketManager) registerChannelEvent() {
 		case ctx := <-x.unregister:
 			x.unregisterHandler(ctx)
 		case data := <-x.send:
-			x._send(data.ToId, websocket.TextMessage, ToBuff(data))
+			x._send(data.ToId, websocket.TextMessage, ToBuff(data.Data))
 		case data := <-x.broadcast:
 			x.SendToAll(data.Msg)
 		}
