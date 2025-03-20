@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/adaptor"
+	"github.com/gorilla/websocket"
 	"github.com/lixiang4u/goWebsocket"
 	"log"
 	"net/http"
@@ -107,6 +108,15 @@ func main() {
 	//})
 	//
 	//_ = app.Listen(":10800")
+
+	appSocket.On(goWebsocket.Event(goWebsocket.EventConnect).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventProtocol) bool {
+		log.Println("[EventConnect]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventClose).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventProtocol) bool {
+		log.Println("[EventClose]", clientId)
+		return true
+	})
 
 	app := fiber.New(fiber.Config{Immutable: true})
 

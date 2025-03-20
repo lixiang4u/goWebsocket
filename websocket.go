@@ -84,8 +84,14 @@ func (x *WebsocketManager) registerChannelEvent() {
 		select {
 		case ctx := <-x.register:
 			x.registerHandler(ctx)
+			if v, ok := x.userEventHandlers[Event(EventConnect).String()]; ok && v != nil {
+				go v(ctx.Id, ctx.Socket, websocket.TextMessage, EventProtocol{})
+			}
 		case ctx := <-x.unregister:
 			x.unregisterHandler(ctx)
+			if v, ok := x.userEventHandlers[Event(EventClose).String()]; ok && v != nil {
+				go v(ctx.Id, ctx.Socket, websocket.TextMessage, EventProtocol{})
+			}
 		case data := <-x.send:
 			x._send(data.ToId, websocket.TextMessage, data.Data)
 		case data := <-x.broadcast:
@@ -175,7 +181,7 @@ EXIT:
 	}
 }
 
-// On 注册事件
+// On 注册事件；目前只支持 EventConnect / EventClose 事件
 func (x *WebsocketManager) On(eventName string, f EventHandler) bool {
 	if len(eventName) < 1 {
 		return false
