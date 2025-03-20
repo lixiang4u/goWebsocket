@@ -82,12 +82,12 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 func (x *WebsocketManager) registerChannelEvent() {
 	for {
 		select {
-		case data := <-x.send:
-			x._send(data.ToId, websocket.TextMessage, ToBuff(data))
 		case ctx := <-x.register:
 			x.registerHandler(ctx)
 		case ctx := <-x.unregister:
 			x.unregisterHandler(ctx)
+		case data := <-x.send:
+			x._send(data.ToId, websocket.TextMessage, ToBuff(data))
 		case data := <-x.broadcast:
 			x.SendToAll(data.Msg)
 		}
