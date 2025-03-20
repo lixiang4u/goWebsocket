@@ -79,3 +79,8 @@ app.Get("/websocket", adaptor.HTTPHandlerFunc(func(writer http.ResponseWriter, r
 
 
 ![markdown](https://raw.githubusercontent.com/lixiang4u/go-websocket/master/_examples/screenshot.png "markdown")
+
+
+### TODO
+目前 `clients`, `users`, `groups` 都是复杂的 `map[string]map[string]interface{}` 结构，修改内层数据时也需要考虑并发问题
+可参考是使用通道将内层外层数据修改串行，即更改数据时通过 `ch <- data` 模式使数据串行执行
