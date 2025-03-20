@@ -7,7 +7,6 @@ import (
 	cmap "github.com/lixiang4u/concurrent-map"
 	"log"
 	"net/http"
-	"slices"
 	"time"
 )
 
@@ -86,7 +85,6 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 	x.groups = cmap.New[cmap.ConcurrentMap[string, bool]]()
 
 	go x.registerChannelEvent()
-	x.registerEvents()
 
 	return x
 }
@@ -96,38 +94,38 @@ func (x *WebsocketManager) registerChannelEvent() {
 		select {
 		case ctx := <-x.register:
 			x.registerHandler(ctx)
-			x.dispatchUserEvent(EventConnect, ctx)
+			x.dispatchUserEvent(Event(EventConnect).String(), ctx)
 		case ctx := <-x.unregister:
 			x.unregisterHandler(ctx)
-			x.dispatchUserEvent(EventClose, ctx)
+			x.dispatchUserEvent(Event(EventClose).String(), ctx)
 		case ctx := <-x.bind:
 			x.bindUid(ctx.Id, ctx.Uid)
-			x.dispatchUserEvent(EventBindUid, ctx)
+			x.dispatchUserEvent(Event(EventBindUid).String(), ctx)
 		case ctx := <-x.unbind:
 			x.unbindUid(ctx.Id, ctx.Uid)
-			x.dispatchUserEvent(EventUnbindUid, ctx)
+			x.dispatchUserEvent(Event(EventUnbindUid).String(), ctx)
 		case ctx := <-x.join:
 			x.joinGroup(ctx.Id, ctx.Group)
-			x.dispatchUserEvent(EventJoinGroup, ctx)
+			x.dispatchUserEvent(Event(EventJoinGroup).String(), ctx)
 		case ctx := <-x.leave:
 			x.leaveGroup(ctx.Id, ctx.Group)
-			x.dispatchUserEvent(EventLeaveGroup, ctx)
+			x.dispatchUserEvent(Event(EventLeaveGroup).String(), ctx)
 		case ctx := <-x.send:
 			x._send(ctx.Id, websocket.TextMessage, ctx.Data)
-			x.dispatchUserEvent(EventSendToClient, ctx)
+			x.dispatchUserEvent(Event(EventSendToClient).String(), ctx)
 		case ctx := <-x.sendToGroup:
-			x.dispatchUserEvent(EventSendToGroup, ctx)
+			x.dispatchUserEvent(Event(EventSendToGroup).String(), ctx)
 		case ctx := <-x.sendToUid:
-			x.dispatchUserEvent(EventSendToUid, ctx)
+			x.dispatchUserEvent(Event(EventSendToUid).String(), ctx)
 		case ctx := <-x.broadcast:
-			x.dispatchUserEvent(EventBroadcast, ctx)
+			x.dispatchUserEvent(Event(EventBroadcast).String(), ctx)
 		}
 	}
 }
 
-func (x *WebsocketManager) dispatchUserEvent(event int, ctx EventCtx) {
-	if v, ok := x.userEventHandlers[Event(event).String()]; ok && v != nil {
-		go v(ctx.Id, nil, websocket.TextMessage, ctx)
+func (x *WebsocketManager) dispatchUserEvent(eventName string, ctx EventCtx) {
+	if v, ok := x.userEventHandlers[eventName]; ok && v != nil {
+		go v(ctx.Id, ctx)
 	}
 }
 
@@ -163,24 +161,14 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 			x.unregister <- EventCtx{Id: clientId, Socket: ws}
 			break
 		}
-		x.Log("[WebsocketRequest] %s", string(data))
+		x.Log("[WebsocketRequest] %d, %s", messageType, string(data))
 
 		var p EventCtx
 		if err := json.Unmarshal(data, &p); err != nil {
 			x.Log("[WebsocketRequestProtocolError] %s", string(data))
 			continue
 		}
-
-		// 先执行内置事件（同步操作），在执行用户事件（异步）
-		var runNext = true
-		if !slices.Contains(blockSensitiveEvents, p.Event) {
-			if v, ok := x.eventHandlers[p.Event]; ok && v != nil {
-				runNext = v(clientId, ws, messageType, p)
-			}
-		}
-		if v, ok := x.userEventHandlers[p.Event]; ok && v != nil && runNext {
-			go v(clientId, ws, messageType, p)
-		}
+		x.dispatchUserEvent(p.Event, p)
 	}
 }
 
@@ -212,7 +200,7 @@ EXIT:
 	}
 }
 
-// On 注册事件；目前支持  registerChannelEvent 中所有事件
+// On 注册事件；目前支持 EventConnect EventClose EventBindUid EventUnbindUid EventJoinGroup EventLeaveGroup EventSendToClient EventSendToGroup EventSendToUid EventBroadcast (registerChannelEvent 中所有事件)
 func (x *WebsocketManager) On(eventName string, f EventHandler) bool {
 	if len(eventName) < 1 {
 		return false
@@ -222,26 +210,6 @@ func (x *WebsocketManager) On(eventName string, f EventHandler) bool {
 	}
 	x.userEventHandlers[eventName] = f
 	return true
-}
-
-func (x *WebsocketManager) registerEvents() {
-	if x.eventHandlers == nil {
-		x.eventHandlers = make(map[string]EventHandler)
-	}
-	//x.eventHandlers[Event(EventHelp).String()] = x.eventHelpHandler
-	//x.eventHandlers[Event(EventConnect).String()] = x.eventConnectHandler
-	//x.eventHandlers[Event(EventClose).String()] = x.eventCloseHandler
-	//x.eventHandlers[Event(EventStat).String()] = x.eventStatHandler
-	//x.eventHandlers[Event(EventPing).String()] = x.eventPingHandler
-	//x.eventHandlers[Event(EventBindUid).String()] = x.eventBindUidHandler
-	x.eventHandlers[Event(EventSendToClient).String()] = x.eventSendToClientHandler
-	x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
-	//x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
-	//x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
-	//x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
-	//x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
-	//x.eventHandlers[Event(EventListGroup).String()] = x.eventListGroupHandler
-	//x.eventHandlers[Event(EventListGroupClient).String()] = x.eventListGroupClientHandler
 }
 
 func (x *WebsocketManager) Log(format string, v ...interface{}) {

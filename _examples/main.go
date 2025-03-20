@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/adaptor"
-	"github.com/gorilla/websocket"
 	"github.com/lixiang4u/goWebsocket"
 	"log"
 	"net/http"
@@ -109,13 +108,47 @@ func main() {
 	//
 	//_ = app.Listen(":10800")
 
-	appSocket.On(goWebsocket.Event(goWebsocket.EventConnect).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventCtx) bool {
+	// EventConnect EventClose EventBindUid EventUnbindUid EventJoinGroup EventLeaveGroup EventSendToClient EventSendToGroup EventSendToUid EventBroadcast
+
+	appSocket.On(goWebsocket.Event(goWebsocket.EventConnect).String(), func(clientId string, data goWebsocket.EventCtx) bool {
 		log.Println("[EventConnect]", clientId)
 		appSocket.Send(clientId, fiber.Map{"clientId": clientId})
 		return true
 	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventClose).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventCtx) bool {
+	appSocket.On(goWebsocket.Event(goWebsocket.EventClose).String(), func(clientId string, data goWebsocket.EventCtx) bool {
 		log.Println("[EventClose]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventBindUid).String(), func(clientId string, data goWebsocket.EventCtx) bool {
+		log.Println("[EventBindUid]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventUnbindUid).String(), func(clientId string, data goWebsocket.EventCtx) bool {
+		log.Println("[EventUnbindUid]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventJoinGroup).String(), func(clientId string, data goWebsocket.EventCtx) bool {
+		log.Println("[EventJoinGroup]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventLeaveGroup).String(), func(clientId string, data goWebsocket.EventCtx) bool {
+		log.Println("[EventLeaveGroup]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventSendToClient).String(), func(clientId string, data goWebsocket.EventCtx) bool {
+		log.Println("[EventSendToClient]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventSendToGroup).String(), func(clientId string, data goWebsocket.EventCtx) bool {
+		log.Println("[EventSendToGroup]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventSendToUid).String(), func(clientId string, data goWebsocket.EventCtx) bool {
+		log.Println("[EventSendToUid]", clientId)
+		return true
+	})
+	appSocket.On(goWebsocket.Event(goWebsocket.EventBroadcast).String(), func(clientId string, data goWebsocket.EventCtx) bool {
+		log.Println("[EventBroadcast]", clientId)
 		return true
 	})
 

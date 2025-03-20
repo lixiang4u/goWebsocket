@@ -2,7 +2,6 @@ package goWebsocket
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
 	"strings"
 )
 
@@ -30,7 +29,7 @@ const (
 type Event int
 
 // EventHandler 事件响应格式
-type EventHandler func(clientId string, ws *websocket.Conn, messageType int, data EventCtx) bool
+type EventHandler func(clientId string, data EventCtx) bool
 
 func (x Event) String() string {
 	var eventName = ""
