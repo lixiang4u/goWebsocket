@@ -8,11 +8,6 @@ type ConnectionCtx struct {
 	Uid    string          `json:"uid"`
 }
 
-type ConnectionCtxPlain struct {
-	Group map[string]bool `json:"group"`
-	Uid   string          `json:"uid"`
-}
-
 // EventCtx 消息交换格式
 type EventCtx struct {
 	Id     string          `json:"id"`               // 客户端Id
