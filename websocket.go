@@ -32,9 +32,9 @@ var upgrader = websocket.Upgrader{
 // 阻止部分敏感操作，应由后台验证权限后替代操作
 var blockSensitiveEvents = []string{
 	//Event(EventBroadcast).String(),
-	Event(EventBindUid).String(),
-	Event(EventSendToUid).String(),
-	Event(EventListGroup).String(),
+	//Event(EventBindUid).String(),
+	//Event(EventSendToUid).String(),
+	//Event(EventListGroup).String(),
 }
 
 type H map[string]interface{}
@@ -198,8 +198,8 @@ func (x *WebsocketManager) registerEvents() {
 	//x.eventHandlers[Event(EventPing).String()] = x.eventPingHandler
 	//x.eventHandlers[Event(EventBindUid).String()] = x.eventBindUidHandler
 	x.eventHandlers[Event(EventSendToClient).String()] = x.eventSendToClientHandler
-	//x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
 	x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
+	//x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
 	//x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
 	//x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
 	//x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
