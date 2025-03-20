@@ -38,7 +38,20 @@ func (x *WebsocketManager) eventSendToUidHandler(clientId string, ws *websocket.
 }
 
 func (x *WebsocketManager) eventSendToGroupHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
-	return true
+	v, ok := x.clients.Get(clientId)
+	if !ok {
+		return false
+	}
+	if v.Group == nil {
+		return false
+	}
+	for tmpGroup, _ := range v.Group {
+		if data.Group == tmpGroup {
+			x.SendToGroup(tmpGroup, ToBuff(data.Data))
+			return true
+		}
+	}
+	return false
 }
 
 func (x *WebsocketManager) eventBroadcastHandler(clientId string, ws *websocket.Conn, messageType int, data MessageProtocol) bool {

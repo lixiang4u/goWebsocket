@@ -199,7 +199,7 @@ func (x *WebsocketManager) registerEvents() {
 	//x.eventHandlers[Event(EventBindUid).String()] = x.eventBindUidHandler
 	x.eventHandlers[Event(EventSendToClient).String()] = x.eventSendToClientHandler
 	//x.eventHandlers[Event(EventSendToUid).String()] = x.eventSendToUidHandler
-	//x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
+	x.eventHandlers[Event(EventSendToGroup).String()] = x.eventSendToGroupHandler
 	//x.eventHandlers[Event(EventBroadcast).String()] = x.eventBroadcastHandler
 	//x.eventHandlers[Event(EventJoinGroup).String()] = x.eventJoinGroupHandler
 	//x.eventHandlers[Event(EventLeaveGroup).String()] = x.eventLeaveGroupHandler
