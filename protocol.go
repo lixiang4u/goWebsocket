@@ -1,25 +1,24 @@
 package goWebsocket
 
-// EventProtocol ws数据交互格式，基于json，event字段必选
-type EventProtocol struct {
-	ClientId string      `json:"client_id,omitempty"` // 发送目标客户端ID
-	Uid      string      `json:"uid,omitempty"`       //
-	Group    string      `json:"group,omitempty"`     // 发送目标客户端组名称
-	Event    string      `json:"event"`               // websocket 事件名,目前支持内置的 SendToClient, SendToGroup两个; 通过 registerEvents 注册
-	Data     interface{} `json:"data"`                // 对方接收的数据(json对象)
+import "github.com/gorilla/websocket"
+
+type ConnectionCtx struct {
+	Socket *websocket.Conn `json:"socket,omitempty"`
+	Group  map[string]bool `json:"group"`
+	Uid    string          `json:"uid"`
 }
 
-type EventProtocolConnect struct {
-	ClientId string `json:"client_id,omitempty"`
-	Event    string `json:"event"`
-	Data     struct {
-		ClientId string `json:"client_id"`
-	} `json:"data"`
+type ConnectionCtxPlain struct {
+	Group map[string]bool `json:"group"`
+	Uid   string          `json:"uid"`
 }
 
-// MessageProtocol 消息类型
-//type MessageProtocol struct {
-//	FromId string      `json:"from_id,omitempty"`
-//	ToId   string      `json:"to_id,omitempty"`
-//	Data   interface{} `json:"data"`
-//}
+// EventCtx 消息交换格式
+type EventCtx struct {
+	Id     string          `json:"id"`               // 客户端Id
+	Group  string          `json:"group,omitempty"`  // 组名/ID
+	Uid    string          `json:"uid,omitempty"`    // 用户ID
+	Socket *websocket.Conn `json:"socket,omitempty"` // 连接
+	Data   interface{}     `json:"data"`             // 数据
+	Event  string          `json:"event,omitempty"`  // websocket 事件名,通过websocket直接通信使用；ws数据交互格式 基于json event字段必选
+}
