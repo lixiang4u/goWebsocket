@@ -2,10 +2,10 @@ package goWebsocket
 
 // EventProtocol ws数据交互格式，基于json，event字段必选
 type EventProtocol struct {
-	ClientId string      `json:"client_id,omitempty"` // 调用sendToClient时的client
-	Group    string      `json:"group,omitempty"`     // 调用sendToGroup时的group
-	Event    string      `json:"event"`
-	Data     interface{} `json:"data"`
+	ClientId string      `json:"client_id,omitempty"` // 发送目标客户端ID
+	Group    string      `json:"group,omitempty"`     // 发送目标客户端组名称
+	Event    string      `json:"event"`               // websocket 事件名,目前支持内置的 SendToClient, SendToGroup两个; 通过 registerEvents 注册
+	Data     interface{} `json:"data"`                // 对方接收的数据(json对象)
 }
 
 type EventProtocolConnect struct {

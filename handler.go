@@ -29,7 +29,7 @@ func (x *WebsocketManager) eventPingHandler(clientId string, ws *websocket.Conn,
 }
 
 func (x *WebsocketManager) eventSendToClientHandler(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool {
-	x.Send(data.ClientId, ToBuff(data.Data))
+	x.Send(data.ClientId, data.Data)
 	return true
 }
 
