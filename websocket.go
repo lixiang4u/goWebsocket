@@ -112,13 +112,18 @@ func (x *WebsocketManager) registerChannelEvent() {
 			x.dispatchUserEvent(Event(EventLeaveGroup).String(), ctx)
 		case ctx := <-x.send:
 			x._send(ctx.Id, websocket.TextMessage, ctx.Data)
-			x.dispatchUserEvent(Event(EventSendToClient).String(), ctx)
 		case ctx := <-x.sendToGroup:
-			x.dispatchUserEvent(Event(EventSendToGroup).String(), ctx)
+			for _, tmpClientId := range x.ListGroupClient(ctx.Group) {
+				x._send(tmpClientId, websocket.TextMessage, ctx.Data)
+			}
 		case ctx := <-x.sendToUid:
-			x.dispatchUserEvent(Event(EventSendToUid).String(), ctx)
+			for _, tmpClientId := range x.ListUserClient(ctx.Uid) {
+				x._send(tmpClientId, websocket.TextMessage, ctx.Data)
+			}
 		case ctx := <-x.broadcast:
-			x.dispatchUserEvent(Event(EventBroadcast).String(), ctx)
+			x.clients.IterCb(func(tmpClientId string, v ConnectionCtx) {
+				x._send(tmpClientId, websocket.TextMessage, ctx.Data)
+			})
 		}
 	}
 }
