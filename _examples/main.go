@@ -164,6 +164,20 @@ func main() {
 					"r":    goWebsocket.UUID(),
 				})
 				break
+			case "send-group":
+				b = appSocket.SendToGroup(group, fiber.Map{
+					"to":   "send-group-" + group,
+					"time": time.Now(),
+					"r":    goWebsocket.UUID(),
+				})
+				break
+			case "send-uid":
+				b = appSocket.SendToUid(uid, fiber.Map{
+					"to":   "send-uid-" + uid,
+					"time": time.Now(),
+					"r":    goWebsocket.UUID(),
+				})
+				break
 			}
 		}
 

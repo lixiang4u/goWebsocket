@@ -122,6 +122,7 @@ func (x *WebsocketManager) UnbindUid(clientId, uid string) bool {
 	}
 
 	v.Uid = ""
+	x.clients.Set(clientId, v)
 
 	return true
 }
