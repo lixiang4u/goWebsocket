@@ -179,6 +179,13 @@ func main() {
 					"r":    goWebsocket.UUID(),
 				})
 				break
+			case "broadcast":
+				b = appSocket.SendToAll(fiber.Map{
+					"to":   "broadcast",
+					"time": time.Now(),
+					"r":    goWebsocket.UUID(),
+				})
+				break
 			}
 		}
 
