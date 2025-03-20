@@ -1,5 +1,13 @@
 package goWebsocket
 
+func (x *WebsocketManager) Connect(ctx EventCtx) {
+	x.register <- ctx
+}
+
+func (x *WebsocketManager) Disconnect(ctx EventCtx) {
+	x.unregister <- ctx
+}
+
 func (x *WebsocketManager) BindUid(clientId, uid string) {
 	x.bind <- EventCtx{Id: clientId, Uid: uid}
 }

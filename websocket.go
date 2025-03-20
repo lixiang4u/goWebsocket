@@ -28,14 +28,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// 阻止部分敏感操作，应由后台验证权限后替代操作
-var blockSensitiveEvents = []string{
-	//Event(EventBroadcast).String(),
-	//Event(EventBindUid).String(),
-	//Event(EventSendToUid).String(),
-	//Event(EventListGroup).String(),
-}
-
 type H map[string]interface{}
 
 type WebsocketManager struct {
@@ -93,10 +85,10 @@ func (x *WebsocketManager) registerChannelEvent() {
 	for {
 		select {
 		case ctx := <-x.register:
-			x.registerHandler(ctx)
+			x.connect(ctx)
 			x.dispatchUserEvent(Event(EventConnect).String(), ctx)
 		case ctx := <-x.unregister:
-			x.unregisterHandler(ctx)
+			x.disconnect(ctx)
 			x.dispatchUserEvent(Event(EventClose).String(), ctx)
 		case ctx := <-x.bind:
 			x.bindUid(ctx.Id, ctx.Uid)
@@ -113,12 +105,20 @@ func (x *WebsocketManager) registerChannelEvent() {
 		case ctx := <-x.send:
 			x._send(ctx.Id, websocket.TextMessage, ctx.Data)
 		case ctx := <-x.sendToGroup:
-			for _, tmpClientId := range x.ListGroupClient(ctx.Group) {
-				x._send(tmpClientId, websocket.TextMessage, ctx.Data)
+			if tmpGroup, ok := x.groups.Get(ctx.Group); ok {
+				if !tmpGroup.IsEmpty() {
+					tmpGroup.IterCb(func(tmpClientId string, v bool) {
+						x._send(tmpClientId, websocket.TextMessage, ctx.Data)
+					})
+				}
 			}
 		case ctx := <-x.sendToUid:
-			for _, tmpClientId := range x.ListUserClient(ctx.Uid) {
-				x._send(tmpClientId, websocket.TextMessage, ctx.Data)
+			if tmpUser, ok := x.users.Get(ctx.Uid); ok {
+				if !tmpUser.IsEmpty() {
+					tmpUser.IterCb(func(tmpClientId string, v bool) {
+						x._send(tmpClientId, websocket.TextMessage, ctx.Data)
+					})
+				}
 			}
 		case ctx := <-x.broadcast:
 			x.clients.IterCb(func(tmpClientId string, v ConnectionCtx) {
@@ -146,7 +146,7 @@ func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, respo
 	go x.writeMessage(clientId, ws)
 	go x.readMessage(clientId, ws)
 
-	x.register <- EventCtx{Id: clientId, Socket: ws}
+	x.Connect(EventCtx{Id: clientId, Socket: ws})
 
 }
 
@@ -163,7 +163,7 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 		messageType, data, err := ws.ReadMessage()
 		if err != nil {
 			// 连接故障
-			x.unregister <- EventCtx{Id: clientId, Socket: ws}
+			x.Disconnect(EventCtx{Id: clientId, Socket: ws})
 			break
 		}
 		x.Log("[WebsocketRequest] %d, %s", messageType, string(data))

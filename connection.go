@@ -10,7 +10,7 @@ type ConnectionCtxPlain struct {
 	Uid   string          `json:"uid"`
 }
 
-func (x *WebsocketManager) registerHandler(ctx EventCtx) {
+func (x *WebsocketManager) connect(ctx EventCtx) {
 	if _, ok := x.clients.Get(ctx.Id); !ok {
 		x.clients.Set(ctx.Id, ConnectionCtx{
 			Socket: ctx.Socket,
@@ -20,7 +20,7 @@ func (x *WebsocketManager) registerHandler(ctx EventCtx) {
 	}
 }
 
-func (x *WebsocketManager) unregisterHandler(ctx EventCtx) {
+func (x *WebsocketManager) disconnect(ctx EventCtx) {
 	x.clients.RemoveCb(ctx.Id, func(key string, v ConnectionCtx, exists bool) bool {
 		if len(v.Uid) > 0 {
 			if tmpU, ok := x.users.Get(v.Uid); ok {
