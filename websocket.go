@@ -52,10 +52,16 @@ type WebsocketManager struct {
 	groups  cmap.ConcurrentMap[string, cmap.ConcurrentMap[string, bool]] // [GroupName => ClientMapEmpty]
 
 	// events
-	broadcast  chan MessageCtx
-	register   chan ClientCtx
-	unregister chan ClientCtx
-	send       chan MessageProtocol
+	register    chan EventCtx
+	unregister  chan EventCtx
+	bind        chan EventCtx
+	unbind      chan EventCtx
+	join        chan EventCtx
+	leave       chan EventCtx
+	send        chan EventCtx
+	sendToGroup chan EventCtx
+	sendToUid   chan EventCtx
+	broadcast   chan EventCtx
 }
 
 func NewWebsocketManager(debug ...bool) *WebsocketManager {
@@ -64,10 +70,16 @@ func NewWebsocketManager(debug ...bool) *WebsocketManager {
 		x.Config.Debug = debug[0]
 	}
 
-	x.broadcast = make(chan MessageCtx)
-	x.register = make(chan ClientCtx)
-	x.unregister = make(chan ClientCtx)
-	x.send = make(chan MessageProtocol)
+	x.register = make(chan EventCtx)
+	x.unregister = make(chan EventCtx)
+	x.bind = make(chan EventCtx)
+	x.unbind = make(chan EventCtx)
+	x.join = make(chan EventCtx)
+	x.leave = make(chan EventCtx)
+	x.send = make(chan EventCtx)
+	x.sendToGroup = make(chan EventCtx)
+	x.sendToUid = make(chan EventCtx)
+	x.broadcast = make(chan EventCtx)
 
 	x.clients = cmap.New[ConnectionCtx]()
 	x.users = cmap.New[cmap.ConcurrentMap[string, bool]]()
@@ -84,19 +96,38 @@ func (x *WebsocketManager) registerChannelEvent() {
 		select {
 		case ctx := <-x.register:
 			x.registerHandler(ctx)
-			if v, ok := x.userEventHandlers[Event(EventConnect).String()]; ok && v != nil {
-				go v(ctx.Id, ctx.Socket, websocket.TextMessage, EventProtocol{})
-			}
+			x.dispatchUserEvent(EventConnect, ctx)
 		case ctx := <-x.unregister:
 			x.unregisterHandler(ctx)
-			if v, ok := x.userEventHandlers[Event(EventClose).String()]; ok && v != nil {
-				go v(ctx.Id, ctx.Socket, websocket.TextMessage, EventProtocol{})
-			}
-		case data := <-x.send:
-			x._send(data.ToId, websocket.TextMessage, data.Data)
-		case data := <-x.broadcast:
-			x.SendToAll(data.Msg)
+			x.dispatchUserEvent(EventClose, ctx)
+		case ctx := <-x.bind:
+			x.bindUid(ctx.Id, ctx.Uid)
+			x.dispatchUserEvent(EventBindUid, ctx)
+		case ctx := <-x.unbind:
+			x.unbindUid(ctx.Id, ctx.Uid)
+			x.dispatchUserEvent(EventUnbindUid, ctx)
+		case ctx := <-x.join:
+			x.joinGroup(ctx.Id, ctx.Group)
+			x.dispatchUserEvent(EventJoinGroup, ctx)
+		case ctx := <-x.leave:
+			x.leaveGroup(ctx.Id, ctx.Group)
+			x.dispatchUserEvent(EventLeaveGroup, ctx)
+		case ctx := <-x.send:
+			x._send(ctx.Id, websocket.TextMessage, ctx.Data)
+			x.dispatchUserEvent(EventSendToClient, ctx)
+		case ctx := <-x.sendToGroup:
+			x.dispatchUserEvent(EventSendToGroup, ctx)
+		case ctx := <-x.sendToUid:
+			x.dispatchUserEvent(EventSendToUid, ctx)
+		case ctx := <-x.broadcast:
+			x.dispatchUserEvent(EventBroadcast, ctx)
 		}
+	}
+}
+
+func (x *WebsocketManager) dispatchUserEvent(event int, ctx EventCtx) {
+	if v, ok := x.userEventHandlers[Event(event).String()]; ok && v != nil {
+		go v(ctx.Id, nil, websocket.TextMessage, ctx)
 	}
 }
 
@@ -112,7 +143,7 @@ func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, respo
 	go x.writeMessage(clientId, ws)
 	go x.readMessage(clientId, ws)
 
-	x.register <- ClientCtx{Id: clientId, Socket: ws}
+	x.register <- EventCtx{Id: clientId, Socket: ws}
 
 }
 
@@ -129,12 +160,12 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 		messageType, data, err := ws.ReadMessage()
 		if err != nil {
 			// 连接故障
-			x.unregister <- ClientCtx{Id: clientId, Socket: ws}
+			x.unregister <- EventCtx{Id: clientId, Socket: ws}
 			break
 		}
 		x.Log("[WebsocketRequest] %s", string(data))
 
-		var p EventProtocol
+		var p EventCtx
 		if err := json.Unmarshal(data, &p); err != nil {
 			x.Log("[WebsocketRequestProtocolError] %s", string(data))
 			continue
@@ -181,7 +212,7 @@ EXIT:
 	}
 }
 
-// On 注册事件；目前只支持 EventConnect / EventClose 事件
+// On 注册事件；目前支持  registerChannelEvent 中所有事件
 func (x *WebsocketManager) On(eventName string, f EventHandler) bool {
 	if len(eventName) < 1 {
 		return false

@@ -17,23 +17,35 @@ type ConnectionCtxPlain struct {
 	Uid   string          `json:"uid"`
 }
 
-type ClientCtx struct {
-	Id     string // 客户端Id
-	Socket *websocket.Conn
+//type ClientCtx struct {
+//	Id     string // 客户端Id
+//	Group  string
+//	Uid    string
+//	Socket *websocket.Conn
+//}
+
+// EventCtx 消息交换格式
+type EventCtx struct {
+	Id     string          `json:"id"`               // 客户端Id
+	Group  string          `json:"group,omitempty"`  // 组名/ID
+	Uid    string          `json:"uid,omitempty"`    // 用户ID
+	Socket *websocket.Conn `json:"socket,omitempty"` // 连接
+	Data   interface{}     `json:"data"`             // 数据
+	Event  string          `json:"event,omitempty"`  // websocket 事件名,通过websocket直接通信使用
 }
 
-type MessageCtx struct {
-	Id  string // 客户端Id
-	Msg []byte
-}
+//type MessageCtx struct {
+//	Id  string // 客户端Id
+//	Msg []byte
+//}
 
-type CmdCtx struct {
-	Id   string // 客户端Id
-	Cmd  int
-	Data any
-}
+//type CmdCtx struct {
+//	Id   string // 客户端Id
+//	Cmd  int
+//	Data any
+//}
 
-func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
+func (x *WebsocketManager) registerHandler(ctx EventCtx) {
 	if _, ok := x.clients.Get(ctx.Id); !ok {
 		x.clients.Set(ctx.Id, ConnectionCtx{
 			Socket: ctx.Socket,
@@ -43,7 +55,7 @@ func (x *WebsocketManager) registerHandler(ctx ClientCtx) {
 	}
 }
 
-func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
+func (x *WebsocketManager) unregisterHandler(ctx EventCtx) {
 	x.clients.RemoveCb(ctx.Id, func(key string, v ConnectionCtx, exists bool) bool {
 		if len(v.Uid) > 0 {
 			if tmpU, ok := x.users.Get(v.Uid); ok {
@@ -63,7 +75,7 @@ func (x *WebsocketManager) unregisterHandler(ctx ClientCtx) {
 	})
 }
 
-func (x *WebsocketManager) BindUid(clientId, uid string) bool {
+func (x *WebsocketManager) bindUid(clientId, uid string) bool {
 	if len(clientId) == 0 || len(uid) == 0 {
 		return false
 	}
@@ -104,7 +116,7 @@ func (x *WebsocketManager) BindUid(clientId, uid string) bool {
 	return true
 }
 
-func (x *WebsocketManager) UnbindUid(clientId, uid string) bool {
+func (x *WebsocketManager) unbindUid(clientId, uid string) bool {
 	if len(clientId) == 0 || len(uid) == 0 {
 		return false
 	}
@@ -127,7 +139,7 @@ func (x *WebsocketManager) UnbindUid(clientId, uid string) bool {
 	return true
 }
 
-func (x *WebsocketManager) JoinGroup(clientId, group string) bool {
+func (x *WebsocketManager) joinGroup(clientId, group string) bool {
 	if len(clientId) == 0 || len(group) == 0 {
 		return false
 	}
@@ -153,7 +165,7 @@ func (x *WebsocketManager) JoinGroup(clientId, group string) bool {
 	return true
 }
 
-func (x *WebsocketManager) LeaveGroup(clientId, group string) bool {
+func (x *WebsocketManager) leaveGroup(clientId, group string) bool {
 	if len(clientId) == 0 || len(group) == 0 {
 		return false
 	}
@@ -173,6 +185,40 @@ func (x *WebsocketManager) LeaveGroup(clientId, group string) bool {
 	}
 
 	return true
+}
+
+func (x *WebsocketManager) _send(clientId string, messageType int, data interface{}) bool {
+	if v, ok := x.clients.Get(clientId); ok && v.Socket != nil {
+		if err := v.Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+			return false
+		}
+		if err := v.Socket.WriteMessage(messageType, ToBuff(data)); err != nil {
+			return false
+		}
+		return true
+	}
+	return false
+}
+
+func (x *WebsocketManager) BindUid(clientId, uid string) {
+	x.bind <- EventCtx{Id: clientId, Uid: uid}
+}
+
+func (x *WebsocketManager) UnbindUid(clientId, uid string) {
+	x.unbind <- EventCtx{Id: clientId, Uid: uid}
+}
+
+func (x *WebsocketManager) JoinGroup(clientId, group string) {
+	x.join <- EventCtx{Id: clientId, Group: group}
+}
+
+func (x *WebsocketManager) LeaveGroup(clientId, group string) {
+	x.leave <- EventCtx{Id: clientId, Group: group}
+}
+
+// Send 对外接口，用于发送ws消息到指定clientId
+func (x *WebsocketManager) Send(clientId string, data interface{}) {
+	x.send <- EventCtx{Id: clientId, Data: data}
 }
 
 func (x *WebsocketManager) ListGroupClient(group string) []string {
@@ -205,45 +251,26 @@ func (x *WebsocketManager) ListUserClient(uid string) []string {
 	return clientList
 }
 
-// Send 对外接口，用于发送ws消息到指定clientId
-func (x *WebsocketManager) Send(clientId string, data interface{}) bool {
-	x.send <- MessageProtocol{ToId: clientId, Data: data}
-	return true
-}
-
-func (x *WebsocketManager) _send(clientId string, messageType int, data interface{}) bool {
-	if v, ok := x.clients.Get(clientId); ok && v.Socket != nil {
-		if err := v.Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-			return false
-		}
-		if err := v.Socket.WriteMessage(messageType, ToBuff(data)); err != nil {
-			return false
-		}
-		return true
-	}
-	return false
-}
-
 // SendToGroup 发送消息到组
-func (x *WebsocketManager) SendToGroup(groupName string, data interface{}) bool {
+func (x *WebsocketManager) SendToGroup(groupName string, data interface{}) {
+	x.sendToGroup <- EventCtx{Group: groupName, Data: data}
 	for _, tmpClientId := range x.ListGroupClient(groupName) {
 		x.Send(tmpClientId, data)
 	}
-	return true
 }
 
-func (x *WebsocketManager) SendToUid(uid string, data interface{}) bool {
+func (x *WebsocketManager) SendToUid(uid string, data interface{}) {
+	x.sendToUid <- EventCtx{Uid: uid, Data: data}
 	for _, tmpClientId := range x.ListUserClient(uid) {
 		x.Send(tmpClientId, data)
 	}
-	return true
 }
 
-func (x *WebsocketManager) SendToAll(data interface{}) bool {
+func (x *WebsocketManager) SendToAll(data interface{}) {
+	x.broadcast <- EventCtx{Data: data}
 	x.clients.IterCb(func(key string, v ConnectionCtx) {
 		x.Send(key, data)
 	})
-	return true
 }
 
 // 获取列表

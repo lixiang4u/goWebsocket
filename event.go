@@ -12,8 +12,9 @@ const (
 	EventClose   = iota
 	EventStat    = iota
 
-	EventPing    = iota
-	EventBindUid = iota
+	EventPing      = iota
+	EventBindUid   = iota
+	EventUnbindUid = iota
 
 	EventSendToClient = iota
 	EventSendToUid    = iota
@@ -29,7 +30,7 @@ const (
 type Event int
 
 // EventHandler 事件响应格式
-type EventHandler func(clientId string, ws *websocket.Conn, messageType int, data EventProtocol) bool
+type EventHandler func(clientId string, ws *websocket.Conn, messageType int, data EventCtx) bool
 
 func (x Event) String() string {
 	var eventName = ""
@@ -46,6 +47,8 @@ func (x Event) String() string {
 		eventName = "Ping"
 	case EventBindUid:
 		eventName = "BindUid"
+	case EventUnbindUid:
+		eventName = "UnbindUid"
 	case EventSendToClient:
 		eventName = "SendToClient"
 	case EventSendToUid:

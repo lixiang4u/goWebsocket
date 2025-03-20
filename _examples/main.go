@@ -109,12 +109,12 @@ func main() {
 	//
 	//_ = app.Listen(":10800")
 
-	appSocket.On(goWebsocket.Event(goWebsocket.EventConnect).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventProtocol) bool {
+	appSocket.On(goWebsocket.Event(goWebsocket.EventConnect).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventCtx) bool {
 		log.Println("[EventConnect]", clientId)
 		appSocket.Send(clientId, fiber.Map{"clientId": clientId})
 		return true
 	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventClose).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventProtocol) bool {
+	appSocket.On(goWebsocket.Event(goWebsocket.EventClose).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventCtx) bool {
 		log.Println("[EventClose]", clientId)
 		return true
 	})
@@ -143,44 +143,43 @@ func main() {
 		var group = ctx.Query("group")
 		var event = ctx.Query("event")
 
-		var b = false
 		if len(clientId) > 0 {
 			switch event {
 			case "bind":
-				b = appSocket.BindUid(clientId, uid)
+				appSocket.BindUid(clientId, uid)
 				break
 			case "unbind":
-				b = appSocket.UnbindUid(clientId, uid)
+				appSocket.UnbindUid(clientId, uid)
 				break
 			case "join":
-				b = appSocket.JoinGroup(clientId, group)
+				appSocket.JoinGroup(clientId, group)
 				break
 			case "leave":
-				b = appSocket.LeaveGroup(clientId, group)
+				appSocket.LeaveGroup(clientId, group)
 				break
 			case "send":
-				b = appSocket.Send(clientId, fiber.Map{
+				appSocket.Send(clientId, fiber.Map{
 					"to":   clientId,
 					"time": time.Now(),
 					"r":    goWebsocket.UUID(),
 				})
 				break
 			case "send-group":
-				b = appSocket.SendToGroup(group, fiber.Map{
+				appSocket.SendToGroup(group, fiber.Map{
 					"to":   "send-group-" + group,
 					"time": time.Now(),
 					"r":    goWebsocket.UUID(),
 				})
 				break
 			case "send-uid":
-				b = appSocket.SendToUid(uid, fiber.Map{
+				appSocket.SendToUid(uid, fiber.Map{
 					"to":   "send-uid-" + uid,
 					"time": time.Now(),
 					"r":    goWebsocket.UUID(),
 				})
 				break
 			case "broadcast":
-				b = appSocket.SendToAll(fiber.Map{
+				appSocket.SendToAll(fiber.Map{
 					"to":   "broadcast",
 					"time": time.Now(),
 					"r":    goWebsocket.UUID(),
@@ -190,7 +189,7 @@ func main() {
 		}
 
 		return ctx.JSON(fiber.Map{
-			"status":    b,
+			"status":    "success",
 			"ListConn":  appSocket.ListConn(),
 			"ListUser":  appSocket.ListUser(),
 			"ListGroup": appSocket.ListGroup(),
