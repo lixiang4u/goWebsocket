@@ -111,6 +111,7 @@ func main() {
 
 	appSocket.On(goWebsocket.Event(goWebsocket.EventConnect).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventProtocol) bool {
 		log.Println("[EventConnect]", clientId)
+		appSocket.Send(clientId, fiber.Map{"clientId": clientId})
 		return true
 	})
 	appSocket.On(goWebsocket.Event(goWebsocket.EventClose).String(), func(clientId string, ws *websocket.Conn, messageType int, data goWebsocket.EventProtocol) bool {

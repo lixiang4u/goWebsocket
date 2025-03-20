@@ -113,7 +113,7 @@ func (x *WebsocketManager) UnbindUid(clientId, uid string) bool {
 		return false
 	}
 	if len(v.Uid) == 0 {
-		return true
+		return false
 	}
 
 	if tmpU, ok := x.users.Get(v.Uid); ok {
