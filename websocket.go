@@ -173,6 +173,7 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 			x.Log("[WebsocketRequestProtocolError] %s", string(data))
 			continue
 		}
+		p.From = clientId
 		x.dispatchUserEvent(p.Event, p)
 	}
 }
