@@ -11,8 +11,8 @@ type ConnectionCtxPlain struct {
 }
 
 func (x *WebsocketManager) connect(ctx EventCtx) {
-	if _, ok := x.clients.Get(ctx.Id); !ok {
-		x.clients.Set(ctx.Id, ConnectionCtx{
+	if _, ok := x.clients.Get(ctx.From); !ok {
+		x.clients.Set(ctx.From, ConnectionCtx{
 			Socket: ctx.Socket,
 			Group:  make(map[string]bool),
 			Uid:    "",
@@ -21,7 +21,7 @@ func (x *WebsocketManager) connect(ctx EventCtx) {
 }
 
 func (x *WebsocketManager) disconnect(ctx EventCtx) {
-	x.clients.RemoveCb(ctx.Id, func(key string, v ConnectionCtx, exists bool) bool {
+	x.clients.RemoveCb(ctx.From, func(key string, v ConnectionCtx, exists bool) bool {
 		if len(v.Uid) > 0 {
 			if tmpU, ok := x.users.Get(v.Uid); ok {
 				tmpU.Remove(key)

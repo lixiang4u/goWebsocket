@@ -9,36 +9,36 @@ func (x *WebsocketManager) Disconnect(ctx EventCtx) {
 }
 
 func (x *WebsocketManager) BindUid(clientId, uid string) {
-	x.bind <- EventCtx{Id: clientId, Uid: uid}
+	x.bind <- EventCtx{From: clientId, ToUid: uid}
 }
 
 func (x *WebsocketManager) UnbindUid(clientId, uid string) {
-	x.unbind <- EventCtx{Id: clientId, Uid: uid}
+	x.unbind <- EventCtx{From: clientId, ToUid: uid}
 }
 
 func (x *WebsocketManager) JoinGroup(clientId, group string) {
-	x.join <- EventCtx{Id: clientId, Group: group}
+	x.join <- EventCtx{From: clientId, ToGroup: group}
 }
 
 func (x *WebsocketManager) LeaveGroup(clientId, group string) {
-	x.leave <- EventCtx{Id: clientId, Group: group}
+	x.leave <- EventCtx{From: clientId, ToGroup: group}
 }
 
 // Send 对外接口，用于发送ws消息到指定clientId
 func (x *WebsocketManager) Send(clientId string, data interface{}) {
-	x.send <- EventCtx{Id: clientId, Data: data}
-	x.dispatchUserEvent(Event(EventSendToClient).String(), EventCtx{Id: clientId, Data: data})
+	x.send <- EventCtx{ToId: clientId, Data: data}
+	x.dispatchUserEvent(Event(EventSendToClient).String(), EventCtx{ToId: clientId, Data: data})
 }
 
 // SendToGroup 发送消息到组
 func (x *WebsocketManager) SendToGroup(groupName string, data interface{}) {
-	x.sendToGroup <- EventCtx{Group: groupName, Data: data}
-	x.dispatchUserEvent(Event(EventSendToGroup).String(), EventCtx{Group: groupName, Data: data})
+	x.sendToGroup <- EventCtx{ToGroup: groupName, Data: data}
+	x.dispatchUserEvent(Event(EventSendToGroup).String(), EventCtx{ToGroup: groupName, Data: data})
 }
 
 func (x *WebsocketManager) SendToUid(uid string, data interface{}) {
-	x.sendToUid <- EventCtx{Uid: uid, Data: data}
-	x.dispatchUserEvent(Event(EventSendToUid).String(), EventCtx{Uid: uid, Data: data})
+	x.sendToUid <- EventCtx{ToUid: uid, Data: data}
+	x.dispatchUserEvent(Event(EventSendToUid).String(), EventCtx{ToUid: uid, Data: data})
 }
 
 func (x *WebsocketManager) SendToAll(data interface{}) {

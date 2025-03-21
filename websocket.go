@@ -91,21 +91,21 @@ func (x *WebsocketManager) registerEvent() {
 			x.disconnect(ctx)
 			x.dispatchUserEvent(Event(EventClose).String(), ctx)
 		case ctx := <-x.bind:
-			x.bindUid(ctx.Id, ctx.Uid)
+			x.bindUid(ctx.From, ctx.ToUid)
 			x.dispatchUserEvent(Event(EventBindUid).String(), ctx)
 		case ctx := <-x.unbind:
-			x.unbindUid(ctx.Id, ctx.Uid)
+			x.unbindUid(ctx.From, ctx.ToUid)
 			x.dispatchUserEvent(Event(EventUnbindUid).String(), ctx)
 		case ctx := <-x.join:
-			x.joinGroup(ctx.Id, ctx.Group)
+			x.joinGroup(ctx.From, ctx.ToGroup)
 			x.dispatchUserEvent(Event(EventJoinGroup).String(), ctx)
 		case ctx := <-x.leave:
-			x.leaveGroup(ctx.Id, ctx.Group)
+			x.leaveGroup(ctx.From, ctx.ToGroup)
 			x.dispatchUserEvent(Event(EventLeaveGroup).String(), ctx)
 		case ctx := <-x.send:
-			x._send(ctx.Id, websocket.TextMessage, ctx.Data)
+			x._send(ctx.ToId, websocket.TextMessage, ctx.Data)
 		case ctx := <-x.sendToGroup:
-			if tmpGroup, ok := x.groups.Get(ctx.Group); ok {
+			if tmpGroup, ok := x.groups.Get(ctx.ToGroup); ok {
 				if !tmpGroup.IsEmpty() {
 					tmpGroup.IterCb(func(tmpClientId string, v bool) {
 						x._send(tmpClientId, websocket.TextMessage, ctx.Data)
@@ -113,7 +113,7 @@ func (x *WebsocketManager) registerEvent() {
 				}
 			}
 		case ctx := <-x.sendToUid:
-			if tmpUser, ok := x.users.Get(ctx.Uid); ok {
+			if tmpUser, ok := x.users.Get(ctx.ToUid); ok {
 				if !tmpUser.IsEmpty() {
 					tmpUser.IterCb(func(tmpClientId string, v bool) {
 						x._send(tmpClientId, websocket.TextMessage, ctx.Data)
@@ -130,7 +130,7 @@ func (x *WebsocketManager) registerEvent() {
 
 func (x *WebsocketManager) dispatchUserEvent(eventName string, ctx EventCtx) {
 	if v, ok := x.userEventHandlers[eventName]; ok && v != nil {
-		go v(ctx.Id, ctx)
+		go v(ctx)
 	}
 }
 
@@ -146,7 +146,7 @@ func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, respo
 	go x.writeMessage(clientId, ws)
 	go x.readMessage(clientId, ws)
 
-	x.Connect(EventCtx{Id: clientId, Socket: ws})
+	x.Connect(EventCtx{From: clientId, Socket: ws})
 
 }
 
@@ -163,7 +163,7 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 		messageType, data, err := ws.ReadMessage()
 		if err != nil {
 			// 连接故障
-			x.Disconnect(EventCtx{Id: clientId, Socket: ws})
+			x.Disconnect(EventCtx{From: clientId, Socket: ws})
 			break
 		}
 		x.Log("[WebsocketRequest] %d, %s", messageType, string(data))
