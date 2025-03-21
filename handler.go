@@ -46,7 +46,24 @@ func (x *WebsocketManager) SendToAll(data interface{}) {
 	x.dispatchUserEvent(Event(EventBroadcast).String(), EventCtx{Data: data})
 }
 
-// 获取列表
+// 获取数据
+
+func (x *WebsocketManager) GetClientUid(clientId string) string {
+	if v, ok := x.clients.Get(clientId); ok {
+		return v.Uid
+	}
+	return ""
+}
+
+func (x *WebsocketManager) GetClientGroupList(clientId string) []string {
+	var groups = make([]string, 0)
+	if v, ok := x.clients.Get(clientId); ok {
+		for tmpGroup, _ := range v.Group {
+			groups = append(groups, tmpGroup)
+		}
+	}
+	return groups
+}
 
 func (x *WebsocketManager) ListGroupClient(group string) []string {
 	var clientList = make([]string, 0)
