@@ -15,7 +15,7 @@ type FromCtx struct {
 
 // EventCtx 消息交换格式
 type EventCtx struct {
-	FromCtx FromCtx `json:"from_ctx,omitempty"` // 连接断开透传数据
+	FromCtx *FromCtx `json:"from_ctx,omitempty"` // 连接断开透传数据
 
 	From    string          `json:"from,omitempty"`     // 来源客户端ID，可能为空
 	ToId    string          `json:"to_id,omitempty"`    // 接收消息的客户端Id；发送人不一定知道（可能直接方法调用 appSocket.SendToGroup）

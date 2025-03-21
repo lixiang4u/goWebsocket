@@ -163,7 +163,8 @@ func (x *WebsocketManager) readMessage(clientId string, ws *websocket.Conn) {
 		messageType, data, err := ws.ReadMessage()
 		if err != nil {
 			// 连接故障，需要将连接上下文数据返回
-			x.Disconnect(EventCtx{From: clientId, FromCtx: x.GetClientCtx(clientId), Socket: nil})
+			var tmpFromCtx = x.GetClientCtx(clientId)
+			x.Disconnect(EventCtx{From: clientId, FromCtx: &tmpFromCtx, Socket: nil})
 			break
 		}
 		x.Log("[WebsocketRequest] %d, %s", messageType, string(data))
