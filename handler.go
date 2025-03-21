@@ -48,6 +48,17 @@ func (x *WebsocketManager) SendToAll(data interface{}) {
 
 // 获取数据
 
+func (x *WebsocketManager) GetClientCtx(clientId string) (uid string, groups []string) {
+	groups = make([]string, 0)
+	if v, ok := x.clients.Get(clientId); ok {
+		uid = v.Uid
+		for tmpGroup, _ := range v.Group {
+			groups = append(groups, tmpGroup)
+		}
+	}
+	return
+}
+
 func (x *WebsocketManager) GetClientUid(clientId string) string {
 	if v, ok := x.clients.Get(clientId); ok {
 		return v.Uid
