@@ -48,14 +48,14 @@ func (x *WebsocketManager) SendToAll(data interface{}) {
 
 // 获取数据
 
-func (x *WebsocketManager) UidOnline(uid string) bool {
+func (x *WebsocketManager) UidClientCount(uid string) int {
 	if len(uid) == 0 {
-		return false
+		return 0
 	}
-	if v, ok := x.users.Get(uid); ok && !v.IsEmpty() {
-		return true
+	if v, ok := x.users.Get(uid); ok {
+		return v.Count()
 	}
-	return false
+	return 0
 }
 
 func (x *WebsocketManager) GetClientCtx(clientId string) (ctx FromCtx) {
