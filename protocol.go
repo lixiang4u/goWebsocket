@@ -9,8 +9,8 @@ type ConnectionCtx struct {
 }
 
 type FromCtx struct {
-	Uid    string   `json:"uid"`
-	Groups []string `json:"groups"`
+	Uid    string   `json:"uid,omitempty"`
+	Groups []string `json:"groups,omitempty"`
 }
 
 // EventCtx 消息交换格式
