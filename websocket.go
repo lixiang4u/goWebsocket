@@ -7,6 +7,7 @@ import (
 	cmap "github.com/lixiang4u/concurrent-map"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -29,6 +30,12 @@ var upgrader = websocket.Upgrader{
 }
 
 type H map[string]interface{}
+
+type SeqOpCtx struct {
+	ClientId string `json:"client_id,omitempty"`
+	Uid      string `json:"uid,omitempty"`
+	Group    string `json:"group,omitempty"`
+}
 
 type WebsocketManager struct {
 	Config struct {
@@ -53,6 +60,9 @@ type WebsocketManager struct {
 	sendToGroup chan EventCtx
 	sendToUid   chan EventCtx
 	broadcast   chan EventCtx
+
+	// 通过该锁控制连接相关的users、groups顺序增加/修改/删除等操作，防止并发导致操作不符合预期结果，同时会有性能问题
+	sync.RWMutex
 }
 
 func NewWebsocketManager(debug ...bool) *WebsocketManager {

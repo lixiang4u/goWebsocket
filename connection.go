@@ -1,7 +1,6 @@
 package goWebsocket
 
 import (
-	cmap "github.com/lixiang4u/concurrent-map"
 	"time"
 )
 
@@ -23,17 +22,17 @@ func (x *WebsocketManager) connect(ctx EventCtx) {
 func (x *WebsocketManager) disconnect(ctx EventCtx) {
 	x.clients.RemoveCb(ctx.From, func(key string, v ConnectionCtx, exists bool) bool {
 		if len(v.Uid) > 0 {
-			if tmpU, ok := x.users.Get(v.Uid); ok {
-				tmpU.Remove(key)
-				x.users.Set(v.Uid, tmpU)
-			}
+			x._removeUserOp(SeqOpCtx{
+				ClientId: key,
+				Uid:      v.Uid,
+			})
 		}
 		if v.Group != nil {
 			for tmpGroupName, _ := range v.Group {
-				if tmpG, ok := x.groups.Get(tmpGroupName); ok {
-					tmpG.Remove(key)
-					x.groups.Set(tmpGroupName, tmpG)
-				}
+				x._removeGroupOp(SeqOpCtx{
+					ClientId: key,
+					Group:    tmpGroupName,
+				})
 			}
 		}
 		return true
@@ -54,29 +53,19 @@ func (x *WebsocketManager) bindUid(clientId, uid string) bool {
 	tmpConn.Uid = uid
 	x.clients.Set(clientId, tmpConn)
 
-	var tmpU cmap.ConcurrentMap[string, bool]
-
 	if len(prevUid) > 0 && prevUid != uid {
 		// 删除旧Uid
-		u, ok := x.users.Get(prevUid)
-		if ok {
-			tmpU = u
-		} else {
-			tmpU = cmap.New[bool]()
-		}
-		tmpU.Remove(clientId)
-		x.users.Set(prevUid, tmpU)
+		x._removeUserOp(SeqOpCtx{
+			ClientId: clientId,
+			Uid:      prevUid,
+		})
 	}
 
 	// 绑定新Uid
-	u, ok := x.users.Get(uid)
-	if ok {
-		tmpU = u
-	} else {
-		tmpU = cmap.New[bool]()
-	}
-	tmpU.Set(clientId, true)
-	x.users.Set(uid, tmpU)
+	x._addUserOp(SeqOpCtx{
+		ClientId: clientId,
+		Uid:      uid,
+	})
 
 	return true
 }
@@ -93,13 +82,13 @@ func (x *WebsocketManager) unbindUid(clientId, uid string) bool {
 		return false
 	}
 
-	if tmpU, ok := x.users.Get(v.Uid); ok {
-		tmpU.Remove(clientId)
-		x.users.Set(v.Uid, tmpU)
-	}
-
 	v.Uid = ""
 	x.clients.Set(clientId, v)
+
+	x._removeUserOp(SeqOpCtx{
+		ClientId: clientId,
+		Uid:      uid,
+	})
 
 	return true
 }
@@ -115,17 +104,15 @@ func (x *WebsocketManager) joinGroup(clientId, group string) bool {
 	if v.Group == nil {
 		v.Group = make(map[string]bool)
 	}
-	if _, ok := v.Group[group]; !ok {
+	if _, ok = v.Group[group]; !ok {
 		v.Group[group] = true
 		x.clients.Set(clientId, v)
 	}
 
-	tmpGroup, ok := x.groups.Get(group)
-	if !ok {
-		tmpGroup = cmap.New[bool]()
-	}
-	tmpGroup.Set(clientId, true)
-	x.groups.Set(group, tmpGroup)
+	x._addGroupOp(SeqOpCtx{
+		ClientId: clientId,
+		Group:    group,
+	})
 
 	return true
 }
@@ -144,10 +131,10 @@ func (x *WebsocketManager) leaveGroup(clientId, group string) bool {
 		x.clients.Set(clientId, v)
 	}
 
-	if tmpGroup, ok := x.groups.Get(group); ok {
-		tmpGroup.Remove(clientId)
-		x.groups.Set(group, tmpGroup)
-	}
+	x._removeGroupOp(SeqOpCtx{
+		ClientId: clientId,
+		Group:    group,
+	})
 
 	return true
 }
