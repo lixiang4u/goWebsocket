@@ -41,8 +41,6 @@ func (x *WebsocketManager) _addGroupOp(ctx SeqOpCtx) {
 	if len(ctx.ClientId) == 0 || len(ctx.Group) == 0 {
 		return
 	}
-	x.Lock()
-	defer x.Unlock()
 
 	v, ok := x.groups.Get(ctx.Group)
 	if !ok {
