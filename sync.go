@@ -51,7 +51,7 @@ func (x *WebsocketManager) _addGroupOp(ctx SeqOpCtx) {
 }
 
 func (x *WebsocketManager) _removeGroupOp(ctx SeqOpCtx) {
-	if len(ctx.ClientId) == 0 || len(ctx.Uid) == 0 {
+	if len(ctx.ClientId) == 0 || len(ctx.Group) == 0 {
 		return
 	}
 
