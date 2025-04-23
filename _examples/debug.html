@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style type="text/css">
+        div {
+            line-height: 220%
+        }
+
+        button {
+            margin-right: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<script src="./vue.global.js"></script>
+
+<div id="app" style="padding: 30px 50px">
+    {{ message }}
+
+    <div>
+        <input v-model="group_name" placeholder="房间名"></input>
+    </div>
+    <div>
+        <input v-model="msg_content" placeholder="消息内容"></input>
+    </div>
+
+    <div>
+        <button @click="joinGroup">加入房间</button>
+        <button @click="leaveGroup">退出房间</button>
+        <button @click="groupBroadcast">发送房间消息</button>
+    </div>
+
+</div>
+
+<script>
+  const { createApp, ref } = Vue
+
+  const message = ref('Hello vue!')
+  const group_name = ref('room_5632')
+  const msg_content = ref('你好呀@@@')
+
+  let ws = null;
+  const newWS = () => {
+    // 注册websocket事件
+    ws = new WebSocket('ws://127.0.0.1:10800/websocket');
+    ws.onopen = function (event) {
+      console.log('[onopen]', event);
+      // ws.send(JSON.stringify({"event": "list", "data": null}))
+    };
+    ws.onmessage = function (msg) {
+      console.log('[onmessage]', msg);
+      console.log('[onmessage.data]', msg.data);
+      // content.innerText += "\r\n【收到消息】" + (new Date()) + "\t" + msg.data;
+      // content.innerText = "【收到消息】" + (new Date()) + "\t" + msg.data + "\r\n" + content.innerText;
+    };
+    ws.onclose = function (event) {
+      console.log('[onclose]', event);
+      // setTimeout(newWS, 2000);
+    };
+    ws.onerror = function (event) {
+      console.log('[onerror]', event);
+    };
+  }
+
+  newWS()
+
+  const sendMsg = ({ event = '', data = {} }) => {
+    ws.send(JSON.stringify({
+      event: event,
+      data: data
+    }))
+  }
+
+  const joinGroup = () => {
+    console.log('[joinGroup]', { group_name, msg_content })
+    sendMsg({ event: 'join_group', data: { group_name: group_name.value, broadcast: true } })
+  }
+  const leaveGroup = () => {
+    console.log('[leaveGroup]', { group_name, msg_content })
+    sendMsg({ event: 'leave_group', data: { group_name: group_name.value, broadcast: true } })
+  }
+  const groupBroadcast = () => {
+    console.log('[groupBroadcast]', { group_name, msg_content })
+    sendMsg({ event: 'group_broadcast', data: { group_name: group_name.value, data: { content: msg_content.value } } })
+  }
+
+  createApp({
+    setup() {
+      return {
+        message,
+        group_name,
+        msg_content,
+        joinGroup,
+        leaveGroup,
+        groupBroadcast,
+      }
+    }
+  }).mount('#app')
+</script>
+
+
+</body>
+</html>

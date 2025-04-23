@@ -4,265 +4,31 @@ import (
 	"encoding/json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/adaptor"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/lixiang4u/goWebsocket"
 	"log"
-	"net/http"
 	"time"
 )
 
 var appSocket = goWebsocket.NewWebsocketManager()
 
 func main() {
-
-	//var app = gin.New()
-	//app.Use(gin.Logger(), gin.Recovery())
-	//
-	//app.StaticFile("/", filepath.Join(goWebsocket.AppPath(), "_examples/index.html"))
-	//
-	//app.GET("websocket", func(ctx *gin.Context) {
-	//	log.Println("[websocket]", time.Now().String())
-	//	appSocket.Handler(ctx.Writer, ctx.Request, nil)
-	//})
-	//
-	//app.GET("/stat", func(ctx *gin.Context) {
-	//	ctx.JSON(200, gin.H{
-	//		"ListConn":  appSocket.ListConn(),
-	//		"ListUser":  appSocket.ListUser(),
-	//		"ListGroup": appSocket.ListGroup(),
-	//	})
-	//
-	//})
-	//
-	//app.GET("bind-uid-v1", func(ctx *gin.Context) {
-	//	var clientId = ctx.Query("client_id")
-	//	var uid = ctx.Query("uid")
-	//	if len(clientId) > 0 && len(uid) > 0 {
-	//		appSocket.BindUid(clientId, uid)
-	//	}
-	//	ctx.JSON(200, gin.H{
-	//		"ListConn":  appSocket.ListConn(),
-	//		"ListUser":  appSocket.ListUser(),
-	//		"ListGroup": appSocket.ListGroup(),
-	//	})
-	//})
-	//
-	//app.GET("bind-uid-v2", func(ctx *gin.Context) {
-	//	var clientId = ctx.Query("client_id")
-	//	var uid = ctx.Query("uid")
-	//	if len(clientId) > 0 && len(uid) > 0 {
-	//		log.Println("[V2]")
-	//	}
-	//	ctx.JSON(200, gin.H{
-	//		"ListConn":  appSocket.ListConn(),
-	//		"ListUser":  appSocket.ListUser(),
-	//		"ListGroup": appSocket.ListGroup(),
-	//	})
-	//})
-	//
-	//_ = app.Run(":10800")
-
-	//app := iris.New()
-	//
-	//app.Get("index.html", func(ctx *context.Context) {
-	//	_ = ctx.ServeFile("./_examples/index.html")
-	//})
-	//
-	//app.Get("websocket", func(ctx *context.Context) {
-	//	log.Println("[websocket]", time.Now().String())
-	//	appSocket.Handler(ctx.ResponseWriter(), ctx.Request(), nil)
-	//})
-	//
-	//app.Get("/stat", func(ctx *context.Context) {
-	//	_ = ctx.JSON(iris.Map{
-	//		"ListConn":  appSocket.ListConn(),
-	//		"ListUser":  appSocket.ListUser(),
-	//		"ListGroup": appSocket.ListGroup(),
-	//	})
-	//})
-	//
-	//app.Get("bind-uid-v1", func(ctx *context.Context) {
-	//	var clientId = ctx.URLParam("client_id")
-	//	var uid = ctx.URLParam("uid")
-	//	if len(clientId) > 0 && len(uid) > 0 {
-	//		appSocket.BindUid(clientId, uid)
-	//	}
-	//	_ = ctx.JSON(iris.Map{
-	//		"ListConn":  appSocket.ListConn(),
-	//		"ListUser":  appSocket.ListUser(),
-	//		"ListGroup": appSocket.ListGroup(),
-	//	})
-	//})
-	//
-	//app.Get("bind-uid-v2", func(ctx *context.Context) {
-	//	var clientId = ctx.URLParam("client_id")
-	//	var uid = ctx.URLParam("uid")
-	//	if len(clientId) > 0 && len(uid) > 0 {
-	//		log.Println("[V2]")
-	//	}
-	//	_ = ctx.JSON(iris.Map{
-	//		"ListConn":  appSocket.ListConn(),
-	//		"ListUser":  appSocket.ListUser(),
-	//		"ListGroup": appSocket.ListGroup(),
-	//	})
-	//})
-	//
-	//_ = app.Listen(":10800")
-
-	// EventConnect EventClose EventBindUid EventUnbindUid EventJoinGroup EventLeaveGroup EventSendToClient EventSendToGroup EventSendToUid EventBroadcast
-
-	appSocket.On(goWebsocket.Event(goWebsocket.EventConnect).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventConnect]", data)
-		appSocket.Send(data.From, fiber.Map{"clientId": data.From})
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventClose).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventClose]", data.From, data)
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventBindUid).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventBindUid]", data.From, data)
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventUnbindUid).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventUnbindUid]", data.From, data)
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventJoinGroup).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventJoinGroup]", data.From, data)
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventLeaveGroup).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventLeaveGroup]", data.From, data)
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventSendToClient).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventSendToClient]", data.ToId, data)
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventSendToGroup).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventSendToGroup]", data.ToGroup, data)
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventSendToUid).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventSendToUid]", data.ToUid, data)
-		return true
-	})
-	appSocket.On(goWebsocket.Event(goWebsocket.EventBroadcast).String(), func(data goWebsocket.EventCtx) bool {
-		log.Println("[EventBroadcast]", data.From, data)
-		return true
+	app := fiber.New(fiber.Config{
+		Immutable:        true,
+		TrustProxy:       true,
+		TrustProxyConfig: fiber.TrustProxyConfig{Loopback: true, LinkLocal: true, Private: true},
 	})
 
-	app := fiber.New(fiber.Config{Immutable: true})
+	app.Use(cors.New())
 
-	app.Get("/index.html", func(ctx fiber.Ctx) error {
-		return ctx.SendFile("./_examples/index.html")
+	app.Get("/debug.html", func(ctx fiber.Ctx) error {
+		return ctx.SendFile("./_examples/debug.html")
+	})
+	app.Get("/vue.global.js", func(ctx fiber.Ctx) error {
+		return ctx.SendFile("./_examples/vue.global.js")
 	})
 
-	app.Get("/websocket", adaptor.HTTPHandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		appSocket.Handler(writer, request, nil)
-	}))
-
-	app.Get("/stat", func(ctx fiber.Ctx) error {
-		return ctx.JSON(fiber.Map{
-			"ListConn":  appSocket.ListConn(),
-			"ListUser":  appSocket.ListUser(),
-			"ListGroup": appSocket.ListGroup(),
-		})
-	})
-
-	app.Get("/debug-socket", func(ctx fiber.Ctx) error {
-		var clientId = ctx.Query("client_id")
-		var uid = ctx.Query("uid")
-		var group = ctx.Query("group")
-		var event = ctx.Query("event")
-
-		if len(clientId) > 0 {
-			switch event {
-			case "bind":
-				appSocket.BindUid(clientId, uid)
-				break
-			case "unbind":
-				appSocket.UnbindUid(clientId, uid)
-				break
-			case "join":
-				appSocket.JoinGroup(clientId, group)
-				break
-			case "leave":
-				appSocket.LeaveGroup(clientId, group)
-				break
-			case "send":
-				appSocket.Send(clientId, fiber.Map{
-					"to":   clientId,
-					"time": time.Now().String(),
-					"r":    goWebsocket.UUID(),
-				})
-				break
-			case "send-group":
-				appSocket.SendToGroup(group, fiber.Map{
-					"to":   "send-group-" + group,
-					"time": time.Now().String(),
-					"r":    goWebsocket.UUID(),
-				})
-				break
-			case "send-uid":
-				appSocket.SendToUid(uid, fiber.Map{
-					"to":   "send-uid-" + uid,
-					"time": time.Now().String(),
-					"r":    goWebsocket.UUID(),
-				})
-				break
-			case "broadcast":
-				appSocket.SendToAll(fiber.Map{
-					"to":   "broadcast",
-					"time": time.Now().String(),
-					"r":    goWebsocket.UUID(),
-				})
-				break
-			}
-		}
-
-		return ctx.JSON(fiber.Map{
-			"status":    "success",
-			"ListConn":  appSocket.ListConn(),
-			"ListUser":  appSocket.ListUser(),
-			"ListGroup": appSocket.ListGroup(),
-		})
-	})
-
-	app.Get("/debug-xx1", func(ctx fiber.Ctx) error {
-		var x []string
-		for tmpId, _ := range appSocket.ListConn() {
-			x = append(x, tmpId)
-		}
-
-		log.Println("[x]", goWebsocket.ToJson(x))
-
-		for idx, tmpId := range x {
-			switch idx {
-			case 0:
-				appSocket.BindUid(tmpId, "u1001")
-				appSocket.JoinGroup(tmpId, "g0008")
-			case 1:
-				appSocket.BindUid(tmpId, "u1002")
-				appSocket.JoinGroup(tmpId, "g0008")
-			case 2:
-				appSocket.BindUid(tmpId, "u1003")
-				appSocket.JoinGroup(tmpId, "g0007")
-			case 3:
-				appSocket.JoinGroup(tmpId, "g0009")
-			case 4:
-				appSocket.JoinGroup(tmpId, "g0008")
-				appSocket.JoinGroup(tmpId, "g0009")
-			case 5:
-			}
-		}
-
-		return ctx.JSON(fiber.Map{
-			"ListConn":  appSocket.ListConn(),
-			"ListUser":  appSocket.ListUser(),
-			"ListGroup": appSocket.ListGroup(),
-		})
-	})
+	app.Get("/websocket", adaptor.HTTPHandlerFunc(HttpConn))
 
 	log.Fatal(app.Listen(":10800"))
 
