@@ -21,7 +21,8 @@ func HttpConn(w http.ResponseWriter, r *http.Request) {
 
 func bindHandler(ctx goWebsocket.EventCtx) bool {
 	type Req struct {
-		Token string `mapstructure:"token"`
+		Token  string `mapstructure:"token"`
+		UserId string `mapstructure:"user_id"`
 	}
 	var req Req
 	if err := mapstructure.Decode(ctx.Data, &req); err != nil {
@@ -40,7 +41,7 @@ func bindHandler(ctx goWebsocket.EventCtx) bool {
 	//	})
 	//	return false
 	//}
-	var loginUserId = "124448"
+	var loginUserId = req.UserId
 	AppSocket.BindUid(ctx.From, loginUserId)
 	AppSocket.Send(ctx.From, goWebsocket.EventCtx{
 		Event: ctx.Event,

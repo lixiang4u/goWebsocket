@@ -22,15 +22,19 @@
 
 <div id="app" style="padding: 30px 50px">
     {{ message }}
-
     <div>
-        <input v-model="group_name" placeholder="房间名"></input>
+        用户ID<input v-model="user_id" placeholder="用户ID"></input>
     </div>
     <div>
-        <input v-model="msg_content" placeholder="消息内容"></input>
+        房间名<input v-model="group_name" placeholder="房间名"></input>
+    </div>
+    <div>
+        消息内容<input v-model="msg_content" placeholder="消息内容"></input>
     </div>
 
     <div>
+        <button @click="bindUser">绑定用户</button>
+        <button @click="unbindUser">解绑用户</button>
         <button @click="joinGroup">加入房间</button>
         <button @click="leaveGroup">退出房间</button>
         <button @click="groupBroadcast">发送房间消息</button>
@@ -42,6 +46,7 @@
   const { createApp, ref } = Vue
 
   const message = ref('Hello vue!')
+  const user_id = ref(Math.round(Math.random() * 1000000))
   const group_name = ref('room_5632')
   const msg_content = ref('你好呀@@@')
 
@@ -76,7 +81,14 @@
       data: data
     }))
   }
-
+  const bindUser = () => {
+    console.log('[bindUser]', { user_id })
+    sendMsg({ event: 'bind', data: { user_id: `${user_id.value}` } })
+  }
+  const unbindUser = () => {
+    console.log('[unbindUser]', { user_id })
+    sendMsg({ event: 'unbind', data: {} })
+  }
   const joinGroup = () => {
     console.log('[joinGroup]', { group_name, msg_content })
     sendMsg({ event: 'join_group', data: { group_name: group_name.value, broadcast: true } })
@@ -94,8 +106,11 @@
     setup() {
       return {
         message,
+        user_id,
         group_name,
         msg_content,
+        bindUser,
+        unbindUser,
         joinGroup,
         leaveGroup,
         groupBroadcast,
