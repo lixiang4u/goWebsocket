@@ -1,6 +1,8 @@
 package goWebsocket
 
-import cmap "github.com/lixiang4u/concurrent-map"
+import (
+	cmap "github.com/lixiang4u/concurrent-map"
+)
 
 // 直接对users、groups操作加锁
 
@@ -32,7 +34,11 @@ func (x *WebsocketManager) _removeUserOp(ctx SeqOpCtx) {
 		return
 	}
 	v.Remove(ctx.ClientId)
-	x.users.Set(ctx.Uid, v)
+	if v.Count() == 0 {
+		x.users.Remove(ctx.Uid)
+	} else {
+		x.users.Set(ctx.Uid, v)
+	}
 }
 func (x *WebsocketManager) _addGroupOp(ctx SeqOpCtx) {
 	x.Lock()
@@ -63,5 +69,9 @@ func (x *WebsocketManager) _removeGroupOp(ctx SeqOpCtx) {
 		return
 	}
 	v.Remove(ctx.ClientId)
-	x.groups.Set(ctx.Group, v)
+	if v.Count() == 0 {
+		x.groups.Remove(ctx.Group)
+	} else {
+		x.groups.Set(ctx.Group, v)
+	}
 }
