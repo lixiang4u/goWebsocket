@@ -48,6 +48,14 @@ func (x *WebsocketManager) SendToAll(data interface{}) {
 
 // 获取数据
 
+func (x *WebsocketManager) UserExist(uid string) bool {
+	if len(uid) == 0 {
+		return false
+	}
+	_, ok := x.users.Get(uid)
+	return ok
+}
+
 func (x *WebsocketManager) UidClientCount(uid string) int {
 	if len(uid) == 0 {
 		return 0
