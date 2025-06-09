@@ -1,10 +1,5 @@
 package goWebsocket
 
-import (
-	"fmt"
-	"strings"
-)
-
 const (
 	EventHelp    = iota
 	EventConnect = iota
@@ -35,41 +30,37 @@ func (x Event) String() string {
 	var eventName = ""
 	switch x {
 	case EventHelp:
-		eventName = "Help"
+		eventName = "x-app-event-help"
 	case EventConnect:
-		eventName = "Connect"
+		eventName = "x-app-event-connect"
 	case EventClose:
-		eventName = "Close"
+		eventName = "x-app-event-close"
 	case EventStat:
-		eventName = "Stat"
+		eventName = "x-app-event-stat"
 	case EventPing:
-		eventName = "Ping"
+		eventName = "x-app-event-ping"
 	case EventBindUid:
-		eventName = "BindUid"
+		eventName = "x-app-event-bind-uid"
 	case EventUnbindUid:
-		eventName = "UnbindUid"
+		eventName = "x-app-event-unbind-uid"
 	case EventSendToClient:
-		eventName = "SendToClient"
+		eventName = "x-app-event-send-to-client"
 	case EventSendToUid:
-		eventName = "SendToUid"
+		eventName = "x-app-event-send-to-uid"
 	case EventSendToGroup:
-		eventName = "SendToGroup"
+		eventName = "x-app-event-send-to-group"
 	case EventBroadcast:
-		eventName = "Broadcast"
+		eventName = "x-app-event-broadcast"
 	case EventJoinGroup:
-		eventName = "JoinGroup"
+		eventName = "x-app-event-Join-Group"
 	case EventLeaveGroup:
-		eventName = "LeaveGroup"
+		eventName = "x-app-event-leave-group"
 	case EventListGroup:
-		eventName = "ListGroup"
+		eventName = "x-app-event-list-group"
 	case EventListGroupClient:
-		eventName = "ListGroupClient"
+		eventName = "x-app-event-list-group-client"
 	default:
 		panic("错误事件")
-	}
-	if len(eventName) > 0 {
-		var r = []rune(eventName)
-		eventName = fmt.Sprintf("%s%s", strings.ToLower(string(r[0])), string(r[1:len(r)]))
 	}
 	return eventName
 }
