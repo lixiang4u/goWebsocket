@@ -9,10 +9,11 @@ type ConnectionCtx struct {
 }
 
 type FromCtx struct {
-	Uid       string   `json:"uid,omitempty"`
-	Groups    []string `json:"groups,omitempty"`
-	Addr      AddrCtx  `json:"addr,omitempty"`       // 透传数据，仅在connect
-	UserAgent string   `json:"user_agent,omitempty"` // 透传数据，仅在connect
+	Uid        string   `json:"uid,omitempty"`
+	Groups     []string `json:"groups,omitempty"`
+	RequestURI string   `json:"request_uri,omitempty"` // 透传数据，仅在connect
+	UserAgent  string   `json:"user_agent,omitempty"`  // 透传数据，仅在connect
+	Addr       AddrCtx  `json:"addr,omitempty"`        // 透传数据，仅在connect
 }
 
 type AddrCtx struct {

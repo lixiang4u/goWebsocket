@@ -160,9 +160,10 @@ func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, respo
 		From:   clientId,
 		Socket: ws,
 		FromCtx: &FromCtx{
-			Uid:       "",
-			Groups:    nil,
-			UserAgent: r.Header.Get("User-Agent"),
+			Uid:        "",
+			Groups:     nil,
+			UserAgent:  r.Header.Get("User-Agent"),
+			RequestURI: r.RequestURI,
 			Addr: AddrCtx{
 				RemoteAddr:    r.RemoteAddr,
 				XRealIP:       r.Header.Get("X-Real-IP"),
