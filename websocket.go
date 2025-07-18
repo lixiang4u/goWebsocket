@@ -156,7 +156,20 @@ func (x *WebsocketManager) Handler(w http.ResponseWriter, r *http.Request, respo
 	go x.writeMessage(clientId, ws)
 	go x.readMessage(clientId, ws)
 
-	x.Connect(EventCtx{From: clientId, Socket: ws})
+	x.Connect(EventCtx{
+		From:   clientId,
+		Socket: ws,
+		FromCtx: &FromCtx{
+			Uid:       "",
+			Groups:    nil,
+			UserAgent: r.Header.Get("User-Agent"),
+			Addr: AddrCtx{
+				RemoteAddr:    r.RemoteAddr,
+				XRealIP:       r.Header.Get("X-Real-IP"),
+				XForwardedFor: r.Header.Get("X-Forwarded-For"),
+			},
+		},
+	})
 
 }
 

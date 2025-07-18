@@ -9,8 +9,16 @@ type ConnectionCtx struct {
 }
 
 type FromCtx struct {
-	Uid    string   `json:"uid,omitempty"`
-	Groups []string `json:"groups,omitempty"`
+	Uid       string   `json:"uid,omitempty"`
+	Groups    []string `json:"groups,omitempty"`
+	Addr      AddrCtx  `json:"addr,omitempty"`       // 透传数据，仅在connect
+	UserAgent string   `json:"user_agent,omitempty"` // 透传数据，仅在connect
+}
+
+type AddrCtx struct {
+	RemoteAddr    string `json:"remote_addr,omitempty"`
+	XRealIP       string `json:"x_real_ip,omitempty"`
+	XForwardedFor string `json:"x_forwarded_for,omitempty"`
 }
 
 // EventCtx 消息交换格式
