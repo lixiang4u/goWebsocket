@@ -26,7 +26,7 @@ func bindHandler(ctx goWebsocket.EventCtx) bool {
 	}
 	var req Req
 	if err := mapstructure.Decode(ctx.Data, &req); err != nil {
-		log.Println("[解析失败]", ctx.From, err.Error())
+		log.Println("[bindHandler] event=bind decode_error")
 		AppSocket.Send(ctx.From, goWebsocket.EventCtx{
 			Event: ctx.Event,
 			Data:  fiber.Map{"code": 500, "msg": err.Error()},
@@ -52,7 +52,7 @@ func bindHandler(ctx goWebsocket.EventCtx) bool {
 
 	{
 		ctx.Data = nil
-		log.Println("[bindHandler]", loginUserId, JsonString(ctx))
+		log.Println("[bindHandler] event=bind")
 	}
 
 	return true
@@ -65,13 +65,13 @@ func unbindHandler(ctx goWebsocket.EventCtx) bool {
 		//user.UserAttr{}.UpdateUserOnline(cast.ToUint(uid), 0)
 	}
 
-	log.Println("[unbindHandler]", uid, JsonString(ctx))
+	log.Println("[unbindHandler] event=unbind")
 
 	return true
 }
 
 func connectHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[connectHandler]", ctx.From, JsonString(ctx))
+	log.Println("[connectHandler] event=connect")
 
 	return true
 }
@@ -81,13 +81,13 @@ func disconnectHandler(ctx goWebsocket.EventCtx) bool {
 		//user.UserAttr{}.UpdateUserOnline(cast.ToUint(ctx.FromCtx.Uid), 0)
 	}
 
-	log.Println("[disconnectHandler]", ctx.FromCtx.Uid, JsonString(ctx))
+	log.Println("[disconnectHandler] event=disconnect")
 
 	return true
 }
 
 func textHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[textHandler]", ctx.From, JsonString(ctx))
+	log.Println("[textHandler] event=text")
 	type Req struct {
 		ToUid   string `mapstructure:"to_uid"`
 		Data    string `mapstructure:"data"`
@@ -95,7 +95,7 @@ func textHandler(ctx goWebsocket.EventCtx) bool {
 	}
 	var req Req
 	if err := mapstructure.Decode(ctx.Data, &req); err != nil {
-		log.Println("[解析失败]", ctx.From, err.Error())
+		log.Println("[textHandler] event=text decode_error")
 		return false
 	}
 
@@ -103,12 +103,12 @@ func textHandler(ctx goWebsocket.EventCtx) bool {
 }
 
 func imageHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[imageHandler]", ctx.From, JsonString(ctx))
+	log.Println("[imageHandler] event=image")
 	return true
 }
 
 func joinHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[joinHandler]", ctx.From, JsonString(ctx))
+	log.Println("[joinHandler] event=join_group")
 
 	type Req struct {
 		GroupName string `mapstructure:"group_name"`
@@ -116,7 +116,7 @@ func joinHandler(ctx goWebsocket.EventCtx) bool {
 	}
 	var req Req
 	if err := mapstructure.Decode(ctx.Data, &req); err != nil {
-		log.Println("[解析失败]", ctx.From, err.Error())
+		log.Println("[joinHandler] event=join_group decode_error")
 		return false
 	}
 	if len(req.GroupName) == 0 {
@@ -124,7 +124,7 @@ func joinHandler(ctx goWebsocket.EventCtx) bool {
 			Event: ctx.Event,
 			Data:  fiber.Map{"code": 500, "msg": "分组名不能为空"},
 		})
-		log.Println("[分组名不能为空]", ctx.From)
+		log.Println("[joinHandler] event=join_group invalid_group")
 		return false
 	}
 	if len(AppSocket.GetClientGroupList(ctx.From)) >= 20 {
@@ -132,14 +132,14 @@ func joinHandler(ctx goWebsocket.EventCtx) bool {
 			Event: ctx.Event,
 			Data:  fiber.Map{"code": 500, "msg": "已加入分组数量超过20"},
 		})
-		log.Println("[已加入分组数量超过20]", ctx.From)
+		log.Println("[joinHandler] event=join_group group_limit_reached")
 		return false
 	}
 
-	log.Println("[JoinGroup...]", ctx.From)
+	log.Println("[joinHandler] event=join_group accepted")
 	AppSocket.JoinGroup(ctx.From, req.GroupName)
 
-	log.Println("[ListConn]", JsonString(AppSocket.ListConn()))
+	log.Println("[joinHandler] event=join_group connection_snapshot_updated")
 
 	if req.Broadcast {
 		AppSocket.SendToGroup(req.GroupName, goWebsocket.EventCtx{
@@ -157,7 +157,7 @@ func joinHandler(ctx goWebsocket.EventCtx) bool {
 }
 
 func leaveHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[leaveHandler]", ctx.From, JsonString(ctx))
+	log.Println("[leaveHandler] event=leave_group")
 
 	type Req struct {
 		GroupName string `mapstructure:"group_name"`
@@ -165,7 +165,7 @@ func leaveHandler(ctx goWebsocket.EventCtx) bool {
 	}
 	var req Req
 	if err := mapstructure.Decode(ctx.Data, &req); err != nil {
-		log.Println("[解析失败]", ctx.From, err.Error())
+		log.Println("[leaveHandler] event=leave_group decode_error")
 		return false
 	}
 	if len(req.GroupName) == 0 {
@@ -192,7 +192,7 @@ func leaveHandler(ctx goWebsocket.EventCtx) bool {
 }
 
 func groupBroadcastHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[groupBroadcastHandler]", ctx.From, JsonString(ctx))
+	log.Println("[groupBroadcastHandler] event=group_broadcast")
 
 	type Req struct {
 		GroupName string      `mapstructure:"group_name"`
@@ -200,7 +200,7 @@ func groupBroadcastHandler(ctx goWebsocket.EventCtx) bool {
 	}
 	var req Req
 	if err := mapstructure.Decode(ctx.Data, &req); err != nil {
-		log.Println("[解析失败]", ctx.From, err.Error())
+		log.Println("[groupBroadcastHandler] event=group_broadcast decode_error")
 		return false
 	}
 	if len(req.GroupName) == 0 {
@@ -210,7 +210,7 @@ func groupBroadcastHandler(ctx goWebsocket.EventCtx) bool {
 		})
 		return false
 	}
-	log.Println("[ListGroupClient]", req.GroupName, JsonString(AppSocket.ListGroupClient(req.GroupName)))
+	log.Println("[groupBroadcastHandler] event=group_broadcast recipients_updated")
 	AppSocket.SendToGroup(req.GroupName, req.Data)
 
 	return true
@@ -218,23 +218,23 @@ func groupBroadcastHandler(ctx goWebsocket.EventCtx) bool {
 }
 
 func shopHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[shopHandler]", ctx.From, JsonString(ctx))
+	log.Println("[shopHandler] event=shop")
 	return true
 }
 
 func clickHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[clickHandler]", AppSocket.GetClientUid(ctx.From), JsonString(ctx))
+	log.Println("[clickHandler] event=click")
 	return true
 }
 
 func onlineHandler(ctx goWebsocket.EventCtx) bool {
-	log.Println("[onlineHandler]", AppSocket.GetClientUid(ctx.From), JsonString(ctx))
+	log.Println("[onlineHandler] event=online")
 	type Req struct {
 		Uid string `mapstructure:"uid"`
 	}
 	var req Req
 	if err := mapstructure.Decode(ctx.Data, &req); err != nil {
-		log.Println("[解析失败]", ctx.From, err.Error())
+		log.Println("[onlineHandler] event=online decode_error")
 		return false
 	}
 

@@ -1,26 +1,37 @@
 package goWebsocket
 
-import (
-	"time"
-)
-
 type ConnectionCtxPlain struct {
 	Group map[string]bool `json:"group"`
 	Uid   string          `json:"uid"`
 }
 
-func (x *WebsocketManager) connect(ctx EventCtx) {
-	if _, ok := x.clients.Get(ctx.From); !ok {
-		x.clients.Set(ctx.From, ConnectionCtx{
-			Socket: ctx.Socket,
-			Group:  make(map[string]bool),
-			Uid:    "",
+func (x *WebsocketManager) connect(ctx EventCtx, worker *clientEventWorker) {
+	var writer *connectionWriter
+	if ctx.Socket != nil {
+		writer = newConnectionWriter(ctx.Socket, x.Config.OutboundQueueSize, writeTicker, func(reason writerFailure) {
+			x.handleWriterFailure(ctx.From, worker, reason)
 		})
 	}
+	x.connectionRecords.Set(ctx.From, connectionRecord{socket: ctx.Socket, worker: worker, writer: writer, ready: true})
+	if x.beforePublishConnection != nil {
+		x.beforePublishConnection(ctx.From)
+	}
+	x.clients.Set(ctx.From, ConnectionCtx{
+		Socket: ctx.Socket,
+		Group:  make(map[string]bool),
+		Uid:    "",
+	})
 }
 
-func (x *WebsocketManager) disconnect(ctx EventCtx) {
-	x.clients.RemoveCb(ctx.From, func(key string, v ConnectionCtx, exists bool) bool {
+func (x *WebsocketManager) disconnectWorker(clientID string, worker *clientEventWorker) {
+	record, exists := x.connectionRecords.Get(clientID)
+	if !exists || record.worker != worker {
+		return
+	}
+	x.clients.RemoveCb(clientID, func(key string, v ConnectionCtx, exists bool) bool {
+		if !exists {
+			return false
+		}
 		if len(v.Uid) > 0 {
 			x._removeUserOp(SeqOpCtx{
 				ClientId: key,
@@ -36,6 +47,9 @@ func (x *WebsocketManager) disconnect(ctx EventCtx) {
 			}
 		}
 		return true
+	})
+	x.connectionRecords.RemoveCb(clientID, func(key string, current connectionRecord, exists bool) bool {
+		return exists && current.worker == worker
 	})
 }
 
@@ -140,14 +154,22 @@ func (x *WebsocketManager) leaveGroup(clientId, group string) bool {
 }
 
 func (x *WebsocketManager) _send(clientId string, messageType int, data interface{}) bool {
-	if v, ok := x.clients.Get(clientId); ok && v.Socket != nil {
-		if err := v.Socket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-			return false
-		}
-		if err := v.Socket.WriteMessage(messageType, ToBuff(data)); err != nil {
-			return false
-		}
-		return true
+	payload, ok := x.marshalOutbound(data)
+	if !ok {
+		return false
 	}
-	return false
+	result := x.enqueueRecipients(x.snapshotClientRecipients([]string{clientId}), messageType, payload)
+	return len(result.Accepted) == 1
+}
+
+func (x *WebsocketManager) enqueueClient(clientID string, worker *clientEventWorker, messageType int, payload []byte) bool {
+	record, ok := x.connectionRecords.Get(clientID)
+	if !ok || !record.ready || record.writer == nil || (worker != nil && record.worker != worker) {
+		return false
+	}
+	connection, published := x.clients.Get(clientID)
+	if !published || connection.Socket != record.socket {
+		return false
+	}
+	return record.writer.enqueue(messageType, payload)
 }

@@ -8,6 +8,13 @@ type ConnectionCtx struct {
 	Uid    string          `json:"uid"`
 }
 
+// EnqueueResult reports which connection queues accepted a frame. Acceptance
+// does not mean that the frame was written to the network or handled by a peer.
+type EnqueueResult struct {
+	Accepted []string
+	Rejected []string
+}
+
 type FromCtx struct {
 	Uid        string   `json:"uid,omitempty"`
 	Groups     []string `json:"groups,omitempty"`
