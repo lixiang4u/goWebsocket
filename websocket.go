@@ -195,11 +195,7 @@ EXIT:
 				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, "NOT EXISTS")
 				break EXIT
 			}
-			if err := ws.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
-				break EXIT
-			}
-			if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := ws.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeWait)); err != nil {
 				x.Log("[WebsocketTickerWriteError] %s, %s", clientId, err.Error())
 				break EXIT
 			}
