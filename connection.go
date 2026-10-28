@@ -10,6 +10,14 @@ type ConnectionCtxPlain struct {
 	Uid   string          `json:"uid"`
 }
 
+func cloneGroupMemberships(groups map[string]bool) map[string]bool {
+	cloned := make(map[string]bool, len(groups)+1)
+	for group, joined := range groups {
+		cloned[group] = joined
+	}
+	return cloned
+}
+
 func (x *WebsocketManager) connect(ctx EventCtx) {
 	if _, ok := x.clients.Get(ctx.From); !ok {
 		x.clients.Set(ctx.From, ConnectionCtx{
@@ -112,10 +120,8 @@ func (x *WebsocketManager) joinGroup(clientId, group string) bool {
 	if !ok {
 		return false
 	}
-	if v.Group == nil {
-		v.Group = make(map[string]bool)
-	}
 	if _, ok := v.Group[group]; !ok {
+		v.Group = cloneGroupMemberships(v.Group)
 		v.Group[group] = true
 		x.clients.Set(clientId, v)
 	}
@@ -139,7 +145,8 @@ func (x *WebsocketManager) leaveGroup(clientId, group string) bool {
 		return false
 	}
 
-	if v.Group != nil {
+	if _, ok := v.Group[group]; ok {
+		v.Group = cloneGroupMemberships(v.Group)
 		delete(v.Group, group)
 		x.clients.Set(clientId, v)
 	}
